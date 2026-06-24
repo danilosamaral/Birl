@@ -5,14 +5,12 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0c0c0d">
 <title>BIRL! — Ficha de Treino</title>
-
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BIRL!">
 <link rel="apple-touch-icon" href="icon.png">
 <link rel="icon" href="icon.png">
-
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Anton&family=Oswald:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -31,8 +29,8 @@ body{margin:0;background:var(--bg);color:var(--text);font-family:var(--body);lin
   padding:0 env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left)}
 header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0c0c0d 70%,rgba(12,12,13,.85));
   border-bottom:1px solid var(--line);padding:calc(env(safe-area-inset-top) + 12px) 16px 10px}
-.marca{display:flex;align-items:center;gap:8px;font-family:var(--head);font-weight:700;letter-spacing:.06em;
-  text-transform:uppercase;font-size:.78rem;color:var(--muted)}
+.marca{display:flex;align-items:center;gap:4px;font-family:var(--head);font-weight:700;letter-spacing:.12em;
+  text-transform:uppercase;font-size:.95rem;color:var(--text)}
 .marca .ponto{color:var(--orange)}
 .titulo{font-family:var(--display);font-size:clamp(1.8rem,8.5vw,2.5rem);line-height:.95;margin:4px 0 0;
   letter-spacing:.01em;text-transform:uppercase;background:linear-gradient(180deg,#fff,#c9c9cc);
@@ -43,8 +41,6 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0c0c0
 .modo-switch button{flex:1;min-height:42px;border:none;background:transparent;color:var(--muted);cursor:pointer;
   font-family:var(--head);font-weight:600;text-transform:uppercase;letter-spacing:.04em;font-size:.82rem;border-radius:9px}
 .modo-switch button[aria-selected="true"]{background:var(--orange);color:#fff}
-
-/* barra de sincronização */
 .sync-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:10px;
   background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:.8rem}
 .sync-bar #sync-status{color:var(--muted);display:flex;align-items:center;gap:7px;min-width:0}
@@ -53,7 +49,6 @@ header{position:sticky;top:0;z-index:20;background:linear-gradient(180deg,#0c0c0
 .sync-bar.on .dot{background:var(--green-soft)}
 .sync-btn{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:7px 12px;
   font-family:var(--head);text-transform:uppercase;font-size:.7rem;letter-spacing:.04em;cursor:pointer;min-height:38px;flex:0 0 auto}
-
 .controle-data{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
 .controle-data label{font-family:var(--head);text-transform:uppercase;font-size:.72rem;letter-spacing:.05em;color:var(--muted)}
 input[type=date]{background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:9px 10px;font-family:var(--body);font-size:1rem;min-height:44px}
@@ -82,6 +77,9 @@ details.painel[open]>summary .seta{transform:rotate(90deg)}
 .reco{margin:10px 0 0;padding-left:0;list-style:none}
 .reco li{margin-bottom:10px;font-size:.92rem;color:#d9d9dc}
 .reco b{color:var(--orange-soft)}
+.glos-titulo-lista{font-family:var(--head);text-transform:uppercase;font-size:.78rem;letter-spacing:.04em;color:var(--muted);margin:14px 0 0}
+.glos-lista{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px}
+.glos-lista button{background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:99px;padding:6px 12px;font-size:.8rem;cursor:pointer;min-height:36px}
 .exercicio{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
 .ex-cabec{padding:14px 16px 10px;border-bottom:1px solid var(--line)}
 .ex-nome{font-family:var(--head);font-weight:600;font-size:1.05rem;line-height:1.2}
@@ -90,21 +88,33 @@ details.painel[open]>summary .seta{transform:rotate(90deg)}
 .serie{padding:12px 0;border-bottom:1px dashed var(--line)}
 .serie:last-child{border-bottom:none}
 .serie-top{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
-.badge{font-family:var(--head);text-transform:uppercase;font-size:.68rem;font-weight:700;letter-spacing:.05em;padding:4px 10px;border-radius:99px;white-space:nowrap}
+.badge{font-family:var(--head);text-transform:uppercase;font-size:.68rem;font-weight:700;letter-spacing:.05em;padding:5px 11px;border-radius:99px;white-space:nowrap;cursor:pointer;display:inline-flex;align-items:center;gap:5px}
 .badge.aquecimento{background:rgba(17,129,74,.18);color:var(--green-soft);border:1px solid rgba(26,161,90,.4)}
 .badge.ajuste{background:rgba(240,169,59,.14);color:var(--amber);border:1px solid rgba(240,169,59,.4)}
 .badge.trabalho{background:rgba(241,90,34,.18);color:var(--orange-soft);border:1px solid rgba(241,90,34,.5)}
-.presc{font-size:.86rem;color:var(--muted);flex:1 1 auto;min-width:120px}
+.badge .q{display:inline-flex;align-items:center;justify-content:center;width:14px;height:14px;border-radius:50%;border:1px solid currentColor;font-size:.58rem;opacity:.85;font-family:var(--body)}
+.presc{font-size:.86rem;color:var(--muted);flex:1 1 auto;min-width:110px}
 .presc b{color:var(--text);font-weight:600}
 .check{display:inline-flex;align-items:center;gap:6px;margin-left:auto;font-family:var(--head);text-transform:uppercase;font-size:.72rem;letter-spacing:.04em;color:var(--muted);cursor:pointer;user-select:none;min-height:44px}
 .check input{width:22px;height:22px;accent-color:var(--orange);cursor:pointer}
-.serie-inputs{display:flex;gap:10px;margin-top:10px}
-.campo{flex:1;display:flex;flex-direction:column;gap:4px}
-.campo span{font-family:var(--head);text-transform:uppercase;font-size:.66rem;letter-spacing:.04em;color:var(--muted)}
+.serie-inputs{display:flex;gap:10px;margin-top:10px;flex-wrap:wrap}
+.campo{flex:1 1 calc(50% - 5px);min-width:72px;display:flex;flex-direction:column;gap:4px}
+.campo span{font-family:var(--head);text-transform:uppercase;font-size:.66rem;letter-spacing:.04em;color:var(--muted);display:flex;align-items:center}
 .campo input{width:100%;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 10px;font-family:var(--body);font-size:1.05rem;min-height:46px;text-align:center}
 .campo input:focus{outline:2px solid var(--orange);outline-offset:0;border-color:var(--orange)}
 .serie.feita .campo input{border-color:rgba(26,161,90,.5)}
-.nota{margin:8px 0 0;font-size:.82rem;color:var(--orange-soft);background:rgba(241,90,34,.08);border-left:3px solid var(--orange);padding:6px 10px;border-radius:6px}
+.q-btn{display:inline-flex;align-items:center;justify-content:center;width:17px;height:17px;border-radius:50%;border:1px solid var(--muted);background:transparent;color:var(--muted);font-size:.64rem;line-height:1;cursor:pointer;padding:0;margin-left:5px;font-family:var(--body)}
+.q-btn:active{background:var(--surface-2)}
+.q-btn.claro{border-color:var(--orange-soft);color:var(--orange-soft)}
+.nota{margin:8px 0 0;font-size:.82rem;color:var(--orange-soft);background:rgba(241,90,34,.08);border-left:3px solid var(--orange);padding:6px 10px;border-radius:6px;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.aval-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px}
+.aval-card h3{font-family:var(--head);text-transform:uppercase;letter-spacing:.04em;font-size:.9rem;margin:0 0 2px}
+.aval-sub{font-size:.8rem;color:var(--muted);margin:0 0 14px}
+.aval-item{margin-bottom:14px}
+.aval-item:last-child{margin-bottom:0}
+.aval-top{display:flex;justify-content:space-between;align-items:baseline;font-size:.92rem;margin-bottom:2px}
+.aval-top b{font-family:var(--head);color:var(--orange-soft);font-size:1.15rem;min-width:28px;text-align:right}
+.aval-item input[type=range]{width:100%;accent-color:var(--orange);height:32px;cursor:pointer}
 .obs-card{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px}
 .obs-card h3{font-family:var(--head);text-transform:uppercase;letter-spacing:.04em;font-size:.9rem;margin:0 0 8px}
 textarea#obs{width:100%;min-height:80px;resize:vertical;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-family:var(--body);font-size:1rem}
@@ -131,7 +141,7 @@ textarea#obs:focus{outline:2px solid var(--orange);border-color:var(--orange)}
 .evo-stat .item b{color:var(--text);font-family:var(--head);font-size:1rem}
 .evo-delta-pos{color:var(--green-soft)!important}
 .evo-delta-neg{color:#ff8b6b!important}
-.vazio{color:var(--muted);font-size:.9rem;text-align:center;padding:24px 12px;background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius)}
+.vazio{color:var(--muted);font-size:.9rem;text-align:center;padding:24px 12px;background:var(--surface);border:1px dashed var(--line);border-radius:var(--radius);margin-bottom:14px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 footer.creditos{text-align:center;color:#55555a;font-size:.74rem;padding:20px 16px 30px}
 #relatorio{display:none}
@@ -150,7 +160,7 @@ dialog{border:1px solid var(--line);background:var(--surface);color:var(--text);
 dialog::backdrop{background:rgba(0,0,0,.7)}
 .modal-corpo{padding:18px}
 .modal-corpo h3{font-family:var(--head);text-transform:uppercase;margin:0 0 6px;font-size:1.1rem}
-.modal-corpo p{font-size:.86rem;color:var(--muted);margin:0 0 12px}
+.modal-corpo p{font-size:.9rem;color:var(--muted);margin:0 0 12px}
 .modal-corpo textarea{width:100%;min-height:160px;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:10px;font-family:monospace;font-size:.8rem}
 .modal-corpo input[type=email],.modal-corpo input[type=password]{width:100%;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:1rem;margin-bottom:10px;min-height:46px}
 #login-msg{font-size:.82rem;color:var(--amber);min-height:1em;margin:6px 0 0}
@@ -162,23 +172,19 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
   <div class="marca"><span>BIRL</span><span class="ponto">!</span></div>
   <h1 class="titulo" id="titulo">Treino A</h1>
   <div class="sub-treino" id="foco-treino">Peito · Bíceps · Abdômen</div>
-
   <div class="modo-switch" role="tablist" aria-label="Modo">
     <button data-modo="registro" aria-selected="true" type="button">Registro</button>
     <button data-modo="evolucao" aria-selected="false" type="button">Evolução</button>
   </div>
-
   <div class="sync-bar" id="sync-bar">
     <span id="sync-status"><i class="dot"></i><span>Salvo só neste aparelho</span></span>
     <button class="sync-btn" id="btn-sync" type="button">Entrar para sincronizar</button>
   </div>
-
   <div class="controle-data" id="bloco-data">
     <label for="data">Data do treino</label>
     <input type="date" id="data">
     <button class="btn-hoje" id="btn-hoje" type="button">Hoje</button>
   </div>
-
   <div class="progresso-wrap" id="bloco-progresso">
     <div class="progresso-top"><span>Séries concluídas</span><b><span id="feitas">0</span> / <span id="total">0</span></b></div>
     <div class="barra"><i id="barra-fill"></i></div>
@@ -198,7 +204,7 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
       Modo visualização: aqui os registros não ficam salvos. No site publicado (Vercel) tudo funciona normalmente.
     </div>
     <details class="painel">
-      <summary>Divisão da semana e recomendações <span class="seta">›</span></summary>
+      <summary>Divisão da semana, recomendações e glossário <span class="seta">›</span></summary>
       <div class="painel-corpo">
         <div class="sugestao-grid">
           <span class="dia">Segunda</span><span class="val">Treino A</span>
@@ -213,12 +219,31 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
           <li><b>Aquecimento:</b> ~30% da carga máxima, longe da falha.</li>
           <li><b>Ajuste:</b> carga considerável, ainda longe da falha. Serve pra sentir o dia.</li>
           <li><b>Série de trabalho:</b> é a que conta. Vá até a falha dentro da faixa de reps.</li>
-          <li><b>RIR:</b> reps que ainda sobrariam. RIR 0 = falha total; RIR 2 = ainda dava mais 2.</li>
           <li><b>Progressão:</b> a cada semana, mais 1–2 reps, um pouco mais de carga, ou menos RIR.</li>
         </ul>
+        <p class="glos-titulo-lista">Glossário — toque para ver a explicação</p>
+        <div class="glos-lista" id="glos-lista"></div>
       </div>
     </details>
     <div id="lista-exercicios"></div>
+
+    <div class="aval-card" id="aval-card">
+      <h3>Como você estava hoje?</h3>
+      <p class="aval-sub">Escala de 0 (nada) a 10 (no máximo). Entra no relatório e na tela de Evolução.</p>
+      <div class="aval-item">
+        <div class="aval-top"><span>Motivação</span><b data-out="motivacao">—</b></div>
+        <input type="range" min="0" max="10" step="1" value="5" data-aval="motivacao" aria-label="Motivação de 0 a 10">
+      </div>
+      <div class="aval-item">
+        <div class="aval-top"><span>Energia / disposição</span><b data-out="energia">—</b></div>
+        <input type="range" min="0" max="10" step="1" value="5" data-aval="energia" aria-label="Energia de 0 a 10">
+      </div>
+      <div class="aval-item">
+        <div class="aval-top"><span>Sono (qualidade)</span><b data-out="sono">—</b></div>
+        <input type="range" min="0" max="10" step="1" value="5" data-aval="sono" aria-label="Qualidade do sono de 0 a 10">
+      </div>
+    </div>
+
     <div class="obs-card">
       <h3>Observações do dia</h3>
       <textarea id="obs" placeholder="Como foi o treino, sensações, ajustes pra próxima vez..."></textarea>
@@ -271,10 +296,18 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
   </div>
 </dialog>
 
+<dialog id="modal-glos">
+  <div class="modal-corpo">
+    <h3 id="glos-titulo"></h3>
+    <p id="glos-texto" style="color:#d9d9dc;font-size:.95rem"></p>
+    <div class="acoes"><button class="btn btn-sec" id="glos-fechar" type="button">Entendi</button></div>
+  </div>
+</dialog>
+
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
 /* ============================================================
-   DADOS DOS TREINOS (extraídos do PDF)
+   DADOS DOS TREINOS
    ============================================================ */
 const TREINOS = {
   A:{foco:"Peito · Bíceps · Abdômen",exercicios:[
@@ -317,9 +350,22 @@ const TREINOS = {
 };
 const ROTULO_TIPO={aquecimento:"Aquecimento",ajuste:"Ajuste",trabalho:"Trabalho"};
 const LETRAS=["A","B","C","D"];
+const ATRIBUTOS=[["motivacao","Motivação"],["energia","Energia"],["sono","Sono"]];
+
+/* Glossário dos conceitos (o "?" abre estas explicações) */
+const GLOSSARIO={
+  aquecimento:{t:"Série de aquecimento",d:"Séries leves (~30% da carga máxima) pra preparar músculos e articulações. Ficam bem longe da falha — não devem te cansar."},
+  ajuste:{t:"Série de ajuste (preparatória)",d:"Carga já considerável, mas ainda longe da falha. Servem pra 'sentir o dia' e decidir quanto vai usar na série de trabalho."},
+  trabalho:{t:"Série de trabalho",d:"A série que conta de verdade. Você vai até a falha (ou quase) dentro da faixa de repetições programada."},
+  rir:{t:"RIR — Repetições em Reserva",d:"Quantas repetições ainda sobrariam se você continuasse. RIR 0 = falha total; RIR 2 = ainda dava mais 2. Quanto menor o RIR, mais perto da falha você chegou."},
+  dropset:{t:"Drop set",d:"Ao chegar na falha, você reduz a carga na hora (sem descansar) e continua até falhar de novo. É uma técnica pra intensificar o fim da série."},
+  restpause:{t:"Rest pause",d:"Ao falhar, descanse poucos segundos (ex.: 10s) e faça mais algumas reps com a mesma carga. '2 rest pause de 10s' = repetir essa pausa curta duas vezes."},
+  pico:{t:"Pico de contração",d:"Segurar a contração no ponto de maior encurtamento do músculo por alguns segundos (ex.: 2s) antes de voltar o movimento."},
+  series:{t:"Campo \"Séries\"",d:"Quantas séries daquela linha você realmente fez. No manual, '1-2 ×' quer dizer de 1 a 2 séries; '3 ×' quer dizer 3 séries. A dica cinza no campo mostra o que está previsto."},
+};
 
 /* ============================================================
-   CONFIG SUPABASE (chave pública — segura, protegida por RLS)
+   CONFIG SUPABASE
    ============================================================ */
 const SUPA_URL="https://eskmvqphpllietgiqnbi.supabase.co";
 const SUPA_KEY="sb_publishable_sTX3lxzeUT-liEHT8_FdNA_AVJpJyQF";
@@ -336,63 +382,47 @@ function dataHoje(){const d=new Date();const mm=String(d.getMonth()+1).padStart(
 function chaveSessao(){return `${dataAtiva}|${treinoAtivo}`;}
 function formatarData(iso){const[a,m,d]=iso.split("-");return `${d}/${m}/${a}`;}
 function formatarDataCurta(iso){const[,m,d]=iso.split("-");return `${d}/${m}`;}
-
-function carregarLocal(){
-  try{const raw=localStorage.getItem(CHAVE);dados=raw?JSON.parse(raw):{};
-    localStorage.setItem("__teste__","1");localStorage.removeItem("__teste__");storageOK=true;}
-  catch(e){storageOK=false;dados={};}
-}
+function carregarLocal(){try{const raw=localStorage.getItem(CHAVE);dados=raw?JSON.parse(raw):{};localStorage.setItem("__teste__","1");localStorage.removeItem("__teste__");storageOK=true;}catch(e){storageOK=false;dados={};}}
 function salvarLocal(){if(!storageOK)return;try{localStorage.setItem(CHAVE,JSON.stringify(dados));}catch(e){storageOK=false;}}
-function sessaoAtual(){const k=chaveSessao();if(!dados[k])dados[k]={series:{},obs:""};return dados[k];}
+function sessaoAtual(){const k=chaveSessao();if(!dados[k])dados[k]={series:{},obs:"",aval:{}};if(!dados[k].aval)dados[k].aval={};return dados[k];}
 function indiceTrabalho(ex){let idx=-1;ex.series.forEach((s,si)=>{if(s.tipo==="trabalho")idx=si;});return idx;}
 function sessoesDoTreino(letra){return Object.keys(dados).filter(k=>k.endsWith("|"+letra)).map(k=>({date:k.split("|")[0],sess:dados[k]})).sort((a,b)=>a.date<b.date?-1:1);}
-
-/* Chamado sempre que o usuário edita a sessão atual: marca hora, salva local e agenda envio */
-function registrarMudanca(){
-  const k=chaveSessao();
-  if(!dados[k])dados[k]={series:{},obs:""};
-  dados[k]._updated=new Date().toISOString();
-  salvarLocal();mostrarSalvo();agendarSubida(k);
-}
+function registrarMudanca(){const k=chaveSessao();if(!dados[k])dados[k]={series:{},obs:"",aval:{}};dados[k]._updated=new Date().toISOString();salvarLocal();mostrarSalvo();agendarSubida(k);}
 
 /* ============================================================
-   GRÁFICO SVG (sem bibliotecas)
+   GRÁFICO SVG
    ============================================================ */
 function svgChart(pts,o){
   o=Object.assign({w:320,h:96,pad:16,linha:"#f15a22",area:"rgba(241,90,34,.12)",ponto:"#1aa15a",texto:"#9a9a9e"},o||{});
   const{w,h,pad}=o,plotW=w-2*pad,plotH=h-2*pad;
   const vals=pts.map(p=>p.v);let min=Math.min(...vals),max=Math.max(...vals);
+  if(o.min!=null)min=o.min;if(o.max!=null)max=o.max;
   if(min===max){min-=1;max+=1;}
   const range=max-min;
   const X=i=>pts.length===1?pad+plotW/2:pad+(i/(pts.length-1))*plotW;
   const Y=v=>pad+plotH-((v-min)/range)*plotH;
   let d="",area="";
   pts.forEach((p,i)=>{d+=(i===0?"M":"L")+X(i).toFixed(1)+" "+Y(p.v).toFixed(1)+" ";});
-  if(pts.length>1){
-    area="M"+X(0).toFixed(1)+" "+(pad+plotH).toFixed(1)+" ";
-    pts.forEach((p,i)=>{area+="L"+X(i).toFixed(1)+" "+Y(p.v).toFixed(1)+" ";});
-    area+="L"+X(pts.length-1).toFixed(1)+" "+(pad+plotH).toFixed(1)+" Z";
-  }
+  if(pts.length>1){area="M"+X(0).toFixed(1)+" "+(pad+plotH).toFixed(1)+" ";pts.forEach((p,i)=>{area+="L"+X(i).toFixed(1)+" "+Y(p.v).toFixed(1)+" ";});area+="L"+X(pts.length-1).toFixed(1)+" "+(pad+plotH).toFixed(1)+" Z";}
   let circ="";pts.forEach((p,i)=>{circ+=`<circle cx="${X(i).toFixed(1)}" cy="${Y(p.v).toFixed(1)}" r="3.5" fill="${o.ponto}"/>`;});
   const f=pts[0],l=pts[pts.length-1];
   const lblF=`<text x="${X(0).toFixed(1)}" y="${(Y(f.v)-7).toFixed(1)}" fill="${o.texto}" font-size="11" text-anchor="middle">${f.v}</text>`;
   const lblL=pts.length>1?`<text x="${X(pts.length-1).toFixed(1)}" y="${(Y(l.v)-7).toFixed(1)}" fill="${o.texto}" font-size="11" text-anchor="middle">${l.v}</text>`:"";
   const dF=`<text x="${X(0).toFixed(1)}" y="${h-3}" fill="${o.texto}" font-size="9" text-anchor="middle">${formatarDataCurta(f.date)}</text>`;
   const dL=pts.length>1?`<text x="${X(pts.length-1).toFixed(1)}" y="${h-3}" fill="${o.texto}" font-size="9" text-anchor="middle">${formatarDataCurta(l.date)}</text>`:"";
-  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Gráfico da evolução da carga em kg">
-    ${area?`<path d="${area}" fill="${o.area}"/>`:""}
-    <path d="${d.trim()}" fill="none" stroke="${o.linha}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
-    ${circ}${lblF}${lblL}${dF}${dL}</svg>`;
+  return `<svg viewBox="0 0 ${w} ${h}" width="100%" height="${h}" role="img" aria-label="Gráfico de evolução">${area?`<path d="${area}" fill="${o.area}"/>`:""}<path d="${d.trim()}" fill="none" stroke="${o.linha}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>${circ}${lblF}${lblL}${dF}${dL}</svg>`;
 }
 function pontosCarga(letra,ei){
   const ex=TREINOS[letra].exercicios[ei];const idx=indiceTrabalho(ex);
   if(idx<0)return{pts:[],ultimo:null};
   const id=`${letra}-${ei}-${idx}`;const pts=[];let ultimo=null;
-  sessoesDoTreino(letra).forEach(({date,sess})=>{
-    const c=sess.series[id];if(!c)return;
-    if(c.kg!==""&&c.kg!=null&&!isNaN(parseFloat(c.kg))){pts.push({date,v:parseFloat(c.kg)});ultimo={kg:c.kg,reps:c.reps||"",rir:c.rir||"",date};}
-  });
+  sessoesDoTreino(letra).forEach(({date,sess})=>{const c=sess.series[id];if(!c)return;if(c.kg!==""&&c.kg!=null&&!isNaN(parseFloat(c.kg))){pts.push({date,v:parseFloat(c.kg)});ultimo={kg:c.kg,reps:c.reps||"",rir:c.rir||"",sets:c.sets||"",date};}});
   return{pts,ultimo};
+}
+function pontosAval(letra,attr){
+  const pts=[];
+  sessoesDoTreino(letra).forEach(({date,sess})=>{const v=sess.aval?sess.aval[attr]:null;if(v!=null&&v!==""&&!isNaN(v))pts.push({date,v:Number(v)});});
+  return pts;
 }
 
 /* ============================================================
@@ -407,10 +437,9 @@ function render(){
   $("#bloco-data").style.display=ehReg?"flex":"none";
   $("#bloco-progresso").style.display=ehReg?"block":"none";
   $("#titulo").textContent=ehReg?`Treino ${treinoAtivo}`:"Evolução";
-  $("#foco-treino").textContent=ehReg?TREINOS[treinoAtivo].foco:`Treino ${treinoAtivo} — progressão de carga`;
+  $("#foco-treino").textContent=ehReg?TREINOS[treinoAtivo].foco:`Treino ${treinoAtivo} — progressão`;
   if(ehReg)renderRegistro();else renderEvolucao();
 }
-
 function renderRegistro(){
   const sessao=sessaoAtual();const lista=$("#lista-exercicios");lista.innerHTML="";
   TREINOS[treinoAtivo].exercicios.forEach((ex,ei)=>{
@@ -420,104 +449,124 @@ function renderRegistro(){
     html+=`</div><div class="ex-series">`;
     ex.series.forEach((s,si)=>{
       const id=`${treinoAtivo}-${ei}-${si}`;
-      const salvo=sessao.series[id]||{kg:"",reps:"",rir:"",done:false};
+      const salvo=sessao.series[id]||{sets:"",kg:"",reps:"",rir:"",done:false};
       const ehTrab=s.tipo==="trabalho";
+      const setsHint=s.presc.split("×")[0].trim();
+      const glosNota=s.nota?(/drop/i.test(s.nota)?"dropset":(/rest pause/i.test(s.nota)?"restpause":"")):"";
       html+=`
       <div class="serie ${salvo.done?"feita":""}" data-id="${id}">
         <div class="serie-top">
-          <span class="badge ${s.tipo}">${ROTULO_TIPO[s.tipo]}</span>
+          <button class="badge ${s.tipo}" data-glos="${s.tipo}" type="button" aria-label="O que é série de ${ROTULO_TIPO[s.tipo].toLowerCase()}">${ROTULO_TIPO[s.tipo]}<i class="q" aria-hidden="true">?</i></button>
           <span class="presc"><b>${s.presc}</b> · intervalo ${s.int}</span>
-          <label class="check" for="chk-${id}">
-            <input type="checkbox" id="chk-${id}" data-campo="done" ${salvo.done?"checked":""} aria-label="Marcar série de ${ROTULO_TIPO[s.tipo].toLowerCase()} de ${ex.nome} como feita"> Feito
-          </label>
+          <label class="check" for="chk-${id}"><input type="checkbox" id="chk-${id}" data-campo="done" ${salvo.done?"checked":""} aria-label="Marcar como feita"> Feito</label>
         </div>
         <div class="serie-inputs">
-          <label class="campo" for="kg-${id}"><span>Carga (kg)</span>
-            <input id="kg-${id}" type="text" inputmode="decimal" data-campo="kg" value="${salvo.kg}" placeholder="0" aria-label="Carga em quilos"></label>
-          <label class="campo" for="reps-${id}"><span>Reps</span>
-            <input id="reps-${id}" type="text" inputmode="numeric" data-campo="reps" value="${salvo.reps}" placeholder="0" aria-label="Repetições feitas"></label>
-          ${ehTrab?`<label class="campo" for="rir-${id}"><span>RIR</span>
-            <input id="rir-${id}" type="text" inputmode="numeric" data-campo="rir" value="${salvo.rir||""}" placeholder="0" aria-label="Repetições em reserva"></label>`:""}
+          <div class="campo"><span>Séries<button class="q-btn" data-glos="series" type="button" aria-label="O que registrar em séries">?</button></span>
+            <input type="text" inputmode="numeric" data-campo="sets" value="${salvo.sets||""}" placeholder="${setsHint}" aria-label="Quantas séries você fez de ${ex.nome}"></div>
+          <div class="campo"><span>Carga (kg)</span>
+            <input type="text" inputmode="decimal" data-campo="kg" value="${salvo.kg||""}" placeholder="0" aria-label="Carga em quilos de ${ex.nome}"></div>
+          <div class="campo"><span>Reps</span>
+            <input type="text" inputmode="numeric" data-campo="reps" value="${salvo.reps||""}" placeholder="0" aria-label="Repetições feitas de ${ex.nome}"></div>
+          ${ehTrab?`<div class="campo"><span>RIR<button class="q-btn" data-glos="rir" type="button" aria-label="O que é RIR">?</button></span>
+            <input type="text" inputmode="numeric" data-campo="rir" value="${salvo.rir||""}" placeholder="0" aria-label="Repetições em reserva de ${ex.nome}"></div>`:""}
         </div>
-        ${s.nota?`<p class="nota">${s.nota}</p>`:""}
+        ${s.nota?`<p class="nota"><span>${s.nota}</span>${glosNota?`<button class="q-btn claro" data-glos="${glosNota}" type="button" aria-label="O que significa">?</button>`:""}</p>`:""}
       </div>`;
     });
     html+=`</div>`;card.innerHTML=html;lista.appendChild(card);
   });
   $("#obs").value=sessao.obs||"";
+  ATRIBUTOS.forEach(([a])=>{
+    const v=(sessao.aval&&sessao.aval[a]!=null&&sessao.aval[a]!=="")?sessao.aval[a]:null;
+    const inp=document.querySelector(`[data-aval="${a}"]`),out=document.querySelector(`[data-out="${a}"]`);
+    if(inp)inp.value=(v==null?5:v);
+    if(out)out.textContent=(v==null?"—":v);
+  });
   atualizarProgresso();
 }
 function atualizarProgresso(){
   const sessao=sessaoAtual();let total=0,feitas=0;
-  TREINOS[treinoAtivo].exercicios.forEach((ex,ei)=>ex.series.forEach((s,si)=>{
-    total++;const id=`${treinoAtivo}-${ei}-${si}`;
-    if(sessao.series[id]&&sessao.series[id].done)feitas++;
-  }));
+  TREINOS[treinoAtivo].exercicios.forEach((ex,ei)=>ex.series.forEach((s,si)=>{total++;const id=`${treinoAtivo}-${ei}-${si}`;if(sessao.series[id]&&sessao.series[id].done)feitas++;}));
   $("#feitas").textContent=feitas;$("#total").textContent=total;
   $("#barra-fill").style.width=total?(feitas/total*100)+"%":"0%";
 }
 function renderEvolucao(){
-  const sessoes=sessoesDoTreino(treinoAtivo);const resumo=$("#resumo-treino");
+  const sessoes=sessoesDoTreino(treinoAtivo);const resumo=$("#resumo-treino");const lista=$("#lista-evolucao");lista.innerHTML="";
   if(sessoes.length===0){
     resumo.innerHTML=`<div class="linha"><span>Sessões registradas</span><b>0</b></div>`;
-    $("#lista-evolucao").innerHTML=`<div class="vazio">Ainda não há registros do Treino ${treinoAtivo}.<br>Anote pelo menos 2 treinos em datas diferentes para ver a linha de evolução.</div>`;
+    lista.innerHTML=`<div class="vazio">Ainda não há registros do Treino ${treinoAtivo}.<br>Anote pelo menos 2 treinos em datas diferentes para ver a linha de evolução.</div>`;
     return;
   }
   const datas=sessoes.map(s=>s.date);
-  resumo.innerHTML=`
-    <div class="linha"><span>Sessões registradas</span><b>${sessoes.length}</b></div>
-    <div class="linha"><span>Período</span><b>${formatarData(datas[0])} → ${formatarData(datas[datas.length-1])}</b></div>`;
-  const lista=$("#lista-evolucao");lista.innerHTML="";let algum=false;
+  resumo.innerHTML=`<div class="linha"><span>Sessões registradas</span><b>${sessoes.length}</b></div><div class="linha"><span>Período</span><b>${formatarData(datas[0])} → ${formatarData(datas[datas.length-1])}</b></div>`;
+  let algum=false;
   TREINOS[treinoAtivo].exercicios.forEach((ex,ei)=>{
-    const{pts,ultimo}=pontosCarga(treinoAtivo,ei);
-    if(pts.length===0)return;algum=true;
+    const{pts,ultimo}=pontosCarga(treinoAtivo,ei);if(pts.length===0)return;algum=true;
     const card=document.createElement("div");card.className="evo-card";
-    const primeiro=pts[0].v,fim=pts[pts.length-1].v,delta=fim-primeiro;
-    const pct=primeiro?Math.round(delta/primeiro*100):0;
+    const primeiro=pts[0].v,fim=pts[pts.length-1].v,delta=fim-primeiro;const pct=primeiro?Math.round(delta/primeiro*100):0;
     let statDelta="";
-    if(pts.length>1){const cls=delta>0?"evo-delta-pos":(delta<0?"evo-delta-neg":"");const sinal=delta>0?"+":"";
-      statDelta=`<span class="item ${cls}"><b>${sinal}${delta.toFixed(delta%1?1:0)} kg</b> (${sinal}${pct}%)</span>`;}
-    const ultTxt=ultimo?`${ultimo.kg} kg${ultimo.reps?` × ${ultimo.reps}`:""}${ultimo.rir!==""?` · RIR ${ultimo.rir}`:""}`:"—";
-    card.innerHTML=`<div class="evo-nome">${ex.nome}</div>${svgChart(pts)}
-      <div class="evo-stat"><span class="item">Última: <b>${ultTxt}</b></span>${statDelta}</div>`;
+    if(pts.length>1){const cls=delta>0?"evo-delta-pos":(delta<0?"evo-delta-neg":"");const sinal=delta>0?"+":"";statDelta=`<span class="item ${cls}"><b>${sinal}${delta.toFixed(delta%1?1:0)} kg</b> (${sinal}${pct}%)</span>`;}
+    const ultTxt=ultimo?`${ultimo.kg} kg${ultimo.reps?` × ${ultimo.reps}`:""}${ultimo.sets?` · ${ultimo.sets} séries`:""}${ultimo.rir!==""?` · RIR ${ultimo.rir}`:""}`:"—";
+    card.innerHTML=`<div class="evo-nome">${ex.nome}</div>${svgChart(pts)}<div class="evo-stat"><span class="item">Última: <b>${ultTxt}</b></span>${statDelta}</div>`;
     lista.appendChild(card);
   });
   if(!algum)lista.innerHTML=`<div class="vazio">Você tem sessões registradas, mas sem cargas (kg) preenchidas nas séries de trabalho. Preencha o kg para ver os gráficos.</div>`;
+  // bloco de prontidão / bem-estar
+  const temAval=ATRIBUTOS.some(([k])=>pontosAval(treinoAtivo,k).length>0);
+  if(temAval){
+    const card=document.createElement("div");card.className="evo-card";
+    let h=`<div class="evo-nome">Prontidão / bem-estar</div>`;
+    ATRIBUTOS.forEach(([k,lbl])=>{
+      const pts=pontosAval(treinoAtivo,k);if(pts.length===0)return;
+      const media=(pts.reduce((a,p)=>a+p.v,0)/pts.length).toFixed(1);
+      h+=`<div style="margin-top:12px"><div class="evo-stat"><span class="item">${lbl} — média <b>${media}</b>/10</span></div>${svgChart(pts,{min:0,max:10,linha:"#f0a93b",area:"rgba(240,169,59,.12)",ponto:"#f5853a",h:70})}</div>`;
+    });
+    card.innerHTML=h;lista.appendChild(card);
+  }
 }
 
 /* ============================================================
-   RELATÓRIO (PDF via impressão)
+   RELATÓRIO
    ============================================================ */
 function gerarRelatorio(){
   const rel=$("#relatorio");let todasDatas=new Set();
   LETRAS.forEach(L=>sessoesDoTreino(L).forEach(s=>todasDatas.add(s.date)));
   const datas=[...todasDatas].sort();
-  let html=`<h1>Relatório de Evolução — BIRL!</h1>
-    <div class="meta">Gerado em ${formatarData(dataHoje())} · ${datas.length} sessões registradas${datas.length?` · ${formatarData(datas[0])} a ${formatarData(datas[datas.length-1])}`:""}</div>`;
+  let html=`<h1>Relatório de Evolução — BIRL!</h1><div class="meta">Gerado em ${formatarData(dataHoje())} · ${datas.length} sessões registradas${datas.length?` · ${formatarData(datas[0])} a ${formatarData(datas[datas.length-1])}`:""}</div>`;
   let temConteudo=false;
   LETRAS.forEach(L=>{
     if(sessoesDoTreino(L).length===0)return;
     let bloco="",achou=false;
     TREINOS[L].exercicios.forEach((ex,ei)=>{
       const{pts,ultimo}=pontosCarga(L,ei);if(pts.length===0)return;achou=true;
-      const primeiro=pts[0].v,fim=pts[pts.length-1].v,delta=fim-primeiro;
-      const pct=primeiro?Math.round(delta/primeiro*100):0;const sinal=delta>0?"+":"";
+      const primeiro=pts[0].v,fim=pts[pts.length-1].v,delta=fim-primeiro;const pct=primeiro?Math.round(delta/primeiro*100):0;const sinal=delta>0?"+":"";
       const evo=pts.length>1?`evolução ${sinal}${delta.toFixed(delta%1?1:0)} kg (${sinal}${pct}%)`:"1ª carga registrada";
-      bloco+=`<div class="rel-ex"><div class="n">${ex.nome}</div>
-        ${svgChart(pts,{linha:"#111",area:"rgba(241,90,34,.10)",ponto:"#f15a22",texto:"#555",w:480,h:90})}
-        <div class="s">De ${primeiro} kg para ${fim} kg · ${evo} · última: ${ultimo?ultimo.kg+" kg":"—"}${ultimo&&ultimo.rir!==""?` (RIR ${ultimo.rir})`:""}</div></div>`;
+      bloco+=`<div class="rel-ex"><div class="n">${ex.nome}</div>${svgChart(pts,{linha:"#111",area:"rgba(241,90,34,.10)",ponto:"#f15a22",texto:"#555",w:480,h:90})}<div class="s">De ${primeiro} kg para ${fim} kg · ${evo} · última: ${ultimo?ultimo.kg+" kg":"—"}${ultimo&&ultimo.sets?` (${ultimo.sets} séries)`:""}${ultimo&&ultimo.rir!==""?` (RIR ${ultimo.rir})`:""}</div></div>`;
     });
-    if(achou){temConteudo=true;html+=`<h2>Treino ${L} — ${TREINOS[L].foco}</h2>${bloco}`;}
+    // bem-estar (médias) do treino
+    let avalLinha="";
+    ATRIBUTOS.forEach(([k,lbl])=>{const pts=pontosAval(L,k);if(pts.length){const m=(pts.reduce((a,p)=>a+p.v,0)/pts.length).toFixed(1);avalLinha+=`${lbl}: ${m}/10&nbsp;&nbsp; `;}});
+    if(avalLinha)bloco+=`<div class="rel-ex"><div class="n">Bem-estar (médias)</div><div class="s">${avalLinha}</div></div>`;
+    if(achou||avalLinha){temConteudo=true;html+=`<h2>Treino ${L} — ${TREINOS[L].foco}</h2>${bloco}`;}
   });
-  if(!temConteudo)html+=`<p>Ainda não há cargas registradas para gerar o relatório.</p>`;
+  if(!temConteudo)html+=`<p>Ainda não há dados registrados para gerar o relatório.</p>`;
   rel.innerHTML=html;window.print();
 }
 
 /* ============================================================
-   SUPABASE — login (e-mail/senha) e sincronização
+   GLOSSÁRIO (o "?")
+   ============================================================ */
+function abrirGlos(termo){const g=GLOSSARIO[termo];if(!g)return;$("#glos-titulo").textContent=g.t;$("#glos-texto").textContent=g.d;$("#modal-glos").showModal();}
+function montarListaGlos(){
+  const ordem=["aquecimento","ajuste","trabalho","series","rir","dropset","restpause","pico"];
+  $("#glos-lista").innerHTML=ordem.map(k=>`<button data-glos="${k}" type="button">${GLOSSARIO[k].t.split(" — ")[0].replace('Campo "Séries"','Séries')}</button>`).join("");
+}
+
+/* ============================================================
+   SUPABASE
    ============================================================ */
 function initSupabase(){
-  if(!window.supabase||!window.supabase.createClient)return; // biblioteca não carregou (ex.: pré-visualização)
+  if(!window.supabase||!window.supabase.createClient)return;
   try{
     sb=window.supabase.createClient(SUPA_URL,SUPA_KEY);
     sb.auth.getSession().then(({data})=>{usuario=data.session?data.session.user:null;atualizarSyncUI();if(usuario)sincronizarInicial();});
@@ -527,7 +576,7 @@ function initSupabase(){
 function atualizarSyncUI(){
   const barra=$("#sync-bar"),st=$("#sync-status span"),btn=$("#btn-sync");
   if(usuario){barra.classList.add("on");st.textContent="Sincronizado: "+(usuario.email||"");btn.textContent="Sair";$("#banner-storage").hidden=true;}
-  else{barra.classList.remove("on");st.textContent=storageOK?"Salvo só neste aparelho":"Salvo só neste aparelho";btn.textContent="Entrar para sincronizar";}
+  else{barra.classList.remove("on");st.textContent="Salvo só neste aparelho";btn.textContent="Entrar para sincronizar";}
 }
 async function entrar(criar){
   if(!sb){msg("A sincronização funciona no site publicado (Vercel), não na pré-visualização.");return;}
@@ -541,14 +590,8 @@ async function entrar(criar){
   if(criar&&!res.data.session){msg("Conta criada! Se pedir confirmação por e-mail, confirme e depois toque em Entrar.");return;}
   msg("");$("#modal-login").close();
 }
-function traduzErro(m){
-  if(/Invalid login/i.test(m))return "E-mail ou senha incorretos.";
-  if(/already registered/i.test(m))return "Esse e-mail já tem conta. Toque em Entrar.";
-  if(/Password should/i.test(m))return "A senha precisa de pelo menos 6 caracteres.";
-  return m;
-}
+function traduzErro(m){if(/Invalid login/i.test(m))return "E-mail ou senha incorretos.";if(/already registered/i.test(m))return "Esse e-mail já tem conta. Toque em Entrar.";if(/Password should/i.test(m))return "A senha precisa de pelo menos 6 caracteres.";return m;}
 function msg(t){$("#login-msg").textContent=t;}
-
 async function sincronizarInicial(){
   if(!sb||!usuario)return;
   try{
@@ -556,33 +599,22 @@ async function sincronizarInicial(){
     if(error)throw error;
     const remoto={};data.forEach(r=>{remoto[`${r.data}|${r.treino}`]={payload:r.payload,updated_at:r.updated_at};});
     const chaves=new Set([...Object.keys(dados),...Object.keys(remoto)]);const paraSubir=[];
-    chaves.forEach(k=>{
-      const loc=dados[k],rem=remoto[k];
+    chaves.forEach(k=>{const loc=dados[k],rem=remoto[k];
       if(loc&&!rem){paraSubir.push(k);}
       else if(rem&&!loc){dados[k]={...rem.payload,_updated:rem.updated_at};}
-      else if(loc&&rem){
-        const tl=loc._updated?Date.parse(loc._updated):0,tr=rem.updated_at?Date.parse(rem.updated_at):0;
-        if(tr>=tl){dados[k]={...rem.payload,_updated:rem.updated_at};}else{paraSubir.push(k);}
-      }
+      else if(loc&&rem){const tl=loc._updated?Date.parse(loc._updated):0,tr=rem.updated_at?Date.parse(rem.updated_at):0;if(tr>=tl){dados[k]={...rem.payload,_updated:rem.updated_at};}else{paraSubir.push(k);}}
     });
     salvarLocal();render();
     for(const k of paraSubir)await subirSessao(k);
-  }catch(e){/* offline: mantém o que está local */}
+  }catch(e){}
 }
 async function subirSessao(k){
-  if(!sb||!usuario)return;
-  const[data,treino]=k.split("|");if(!dados[k])return;
-  const payload={series:dados[k].series||{},obs:dados[k].obs||""};
+  if(!sb||!usuario)return;const[data,treino]=k.split("|");if(!dados[k])return;
+  const payload={series:dados[k].series||{},obs:dados[k].obs||"",aval:dados[k].aval||{}};
   try{await sb.from("adg_registros").upsert({user_id:usuario.id,data,treino,payload,updated_at:new Date().toISOString()},{onConflict:"user_id,data,treino"});}catch(e){}
 }
-async function apagarSessaoRemota(k){
-  if(!sb||!usuario)return;const[data,treino]=k.split("|");
-  try{await sb.from("adg_registros").delete().eq("user_id",usuario.id).eq("data",data).eq("treino",treino);}catch(e){}
-}
-function agendarSubida(k){
-  filaSync[k]=true;clearTimeout(timerSync);
-  timerSync=setTimeout(async()=>{const ks=Object.keys(filaSync);filaSync={};for(const key of ks)await subirSessao(key);},1200);
-}
+async function apagarSessaoRemota(k){if(!sb||!usuario)return;const[data,treino]=k.split("|");try{await sb.from("adg_registros").delete().eq("user_id",usuario.id).eq("data",data).eq("treino",treino);}catch(e){}}
+function agendarSubida(k){filaSync[k]=true;clearTimeout(timerSync);timerSync=setTimeout(async()=>{const ks=Object.keys(filaSync);filaSync={};for(const key of ks)await subirSessao(key);},1200);}
 
 /* ============================================================
    EVENTOS
@@ -593,9 +625,16 @@ function mostrarSalvo(){if(!storageOK&&!usuario)return;const el=$("#salvo");el.c
 $("#lista-exercicios").addEventListener("input",(e)=>{
   const linha=e.target.closest(".serie");if(!linha)return;
   const id=linha.dataset.id,campo=e.target.dataset.campo,sessao=sessaoAtual();
-  if(!sessao.series[id])sessao.series[id]={kg:"",reps:"",rir:"",done:false};
+  if(!campo)return;
+  if(!sessao.series[id])sessao.series[id]={sets:"",kg:"",reps:"",rir:"",done:false};
   if(campo==="done"){sessao.series[id].done=e.target.checked;linha.classList.toggle("feita",e.target.checked);atualizarProgresso();}
   else{sessao.series[id][campo]=e.target.value;}
+  registrarMudanca();
+});
+$("#aval-card").addEventListener("input",(e)=>{
+  const a=e.target.dataset.aval;if(!a)return;
+  const v=Number(e.target.value);const s=sessaoAtual();if(!s.aval)s.aval={};s.aval[a]=v;
+  const out=document.querySelector(`[data-out="${a}"]`);if(out)out.textContent=v;
   registrarMudanca();
 });
 $("#obs").addEventListener("input",(e)=>{sessaoAtual().obs=e.target.value;registrarMudanca();});
@@ -605,19 +644,17 @@ $("#data").addEventListener("change",(e)=>{dataAtiva=e.target.value||dataHoje();
 $("#btn-hoje").addEventListener("click",()=>{dataAtiva=dataHoje();$("#data").value=dataAtiva;render();});
 $("#btn-limpar").addEventListener("click",()=>{if(confirm(`Apagar os registros do Treino ${treinoAtivo} em ${formatarData(dataAtiva)}?`)){const k=chaveSessao();delete dados[k];salvarLocal();apagarSessaoRemota(k);render();}});
 $("#btn-relatorio").addEventListener("click",gerarRelatorio);
-
 $("#btn-backup").addEventListener("click",()=>{$("#modal-texto").value=JSON.stringify(dados,null,2);$("#modal").showModal();});
 $("#btn-fechar").addEventListener("click",()=>$("#modal").close());
 $("#btn-copiar").addEventListener("click",async()=>{try{await navigator.clipboard.writeText($("#modal-texto").value);alert("Backup copiado!");}catch(e){$("#modal-texto").select();alert("Selecionei o texto — use Copiar do teclado.");}});
 $("#btn-restaurar").addEventListener("click",()=>{try{const novo=JSON.parse($("#modal-texto").value);if(typeof novo!=="object"||Array.isArray(novo))throw 0;dados=novo;salvarLocal();render();$("#modal").close();if(usuario)sincronizarInicial();alert("Registros restaurados!");}catch(e){alert("Não consegui ler esse backup. Confira se o texto está completo.");}});
-
-$("#btn-sync").addEventListener("click",async()=>{
-  if(usuario){if(confirm("Sair da conta neste aparelho? Os dados continuam salvos localmente."))await sb.auth.signOut();}
-  else{if(!sb){alert("A sincronização funciona no site publicado (Vercel), não aqui na pré-visualização.");return;}msg("");$("#modal-login").showModal();}
-});
+$("#btn-sync").addEventListener("click",async()=>{if(usuario){if(confirm("Sair da conta neste aparelho? Os dados continuam salvos localmente."))await sb.auth.signOut();}else{if(!sb){alert("A sincronização funciona no site publicado (Vercel), não aqui na pré-visualização.");return;}msg("");$("#modal-login").showModal();}});
 $("#btn-entrar").addEventListener("click",()=>entrar(false));
 $("#btn-criar").addEventListener("click",()=>entrar(true));
 $("#btn-login-fechar").addEventListener("click",()=>$("#modal-login").close());
+$("#glos-fechar").addEventListener("click",()=>$("#modal-glos").close());
+// abre o glossário ao tocar em qualquer elemento com data-glos
+document.addEventListener("click",(e)=>{const el=e.target.closest("[data-glos]");if(!el)return;e.preventDefault();abrirGlos(el.dataset.glos);});
 
 /* ============================================================
    INÍCIO
@@ -625,6 +662,7 @@ $("#btn-login-fechar").addEventListener("click",()=>$("#modal-login").close());
 carregarLocal();
 $("#data").value=dataAtiva;
 if(!storageOK)$("#banner-storage").hidden=false;
+montarListaGlos();
 render();
 initSupabase();
 </script>
