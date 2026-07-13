@@ -59,6 +59,9 @@ interface Estado {
   sessaoAtiva(): Sessao;
   setRegistro(chave: string, campo: keyof RegistroSerie, valor: string | boolean): void;
   setRegistroCompleto(chave: string, registro: RegistroSerie): void;
+  iniciarTreino(): void;
+  encerrarTreino(): void;
+  retomarTreino(): void;
   setAval(attr: keyof Aval, valor: number): void;
   setObs(obs: string): void;
   limparDia(): void;
@@ -330,6 +333,25 @@ export const useStore = create<Estado>((set, get) => {
     setRegistroCompleto(chave, registro) {
       const sess = { ...get().sessaoAtiva() };
       sess.registros = { ...sess.registros, [chave]: registro };
+      salvarSessao(sess);
+    },
+    iniciarTreino() {
+      const sess = { ...get().sessaoAtiva() };
+      if (sess.inicio) return;
+      sess.inicio = agora();
+      delete sess.fim;
+      salvarSessao(sess);
+    },
+    encerrarTreino() {
+      const sess = { ...get().sessaoAtiva() };
+      if (!sess.inicio || sess.fim) return;
+      sess.fim = agora();
+      salvarSessao(sess);
+    },
+    retomarTreino() {
+      const sess = { ...get().sessaoAtiva() };
+      if (!sess.fim) return;
+      delete sess.fim;
       salvarSessao(sess);
     },
     setAval(attr, valor) {

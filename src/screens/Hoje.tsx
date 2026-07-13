@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { useStore } from "../store";
 import { useGlos, ListaGlossario } from "../glos";
 import { useDetalheEx } from "../detalhe";
@@ -15,6 +16,8 @@ import {
   sessoesDoTreino,
   treinosDoPrograma,
   treinosVisiveis,
+  duracaoMin,
+  formatarDuracao,
   ultimaCargaAntes,
   ultimoRegistroDaSerie,
 } from "../utils";
@@ -47,14 +50,6 @@ export function Hoje() {
   const treinoForaDoPrograma = !treinos.some((t) => t.id === treino.id);
 
   const historico = sessoesDoTreino(st.sessoes, treino.id);
-  let total = 0;
-  let feitas = 0;
-  treino.exercicios.forEach((te) =>
-    te.series.forEach((_s, si) => {
-      total++;
-      if (sess.registros[regKey(te.id, si)]?.done) feitas++;
-    })
-  );
 
   return (
     <>
@@ -101,17 +96,7 @@ export function Hoje() {
           {DIAS_SEMANA[diaDaSemana(st.dataAtiva)]}: <b>{sugestao ? sugestao.nome : "descanso"}</b>
           {programa ? ` na divisão de "${programa.nome}"` : ""}
         </div>
-        <div className="progresso-wrap">
-          <div className="progresso-top">
-            <span>Séries concluídas</span>
-            <b>
-              {feitas} / {total}
-            </b>
-          </div>
-          <div className="barra">
-            <i style={{ width: total ? `${(feitas / total) * 100}%` : "0%" }} />
-          </div>
-        </div>
+        <BlocoDuracao />
       </div>
 
       {st.migradas > 0 && (
@@ -345,5 +330,57 @@ export function Hoje() {
         </button>
       </div>
     </>
+  );
+}
+
+/** Iniciar/encerrar treino — registra a duração da sessão. */
+function BlocoDuracao() {
+  const st = useStore();
+  const sess = st.sessaoAtiva();
+  const rodando = !!sess.inicio && !sess.fim;
+  const [, tick] = useState(0);
+
+  useEffect(() => {
+    if (!rodando) return;
+    const intervalo = setInterval(() => tick((x) => x + 1), 1000);
+    return () => clearInterval(intervalo);
+  }, [rodando, sess.id]);
+
+  if (!sess.inicio) {
+    return (
+      <div className="bloco-duracao">
+        <button className="btn btn-pri" type="button" onClick={st.iniciarTreino}>
+          ▶ Iniciar treino
+        </button>
+      </div>
+    );
+  }
+
+  if (!sess.fim) {
+    const seg = Math.max(0, Math.floor((Date.now() - Date.parse(sess.inicio)) / 1000));
+    const h = Math.floor(seg / 3600);
+    const mm = String(Math.floor((seg % 3600) / 60)).padStart(h ? 2 : 1, "0");
+    const ss = String(seg % 60).padStart(2, "0");
+    return (
+      <div className="bloco-duracao">
+        <span className="tempo" role="timer">
+          ⏱ {h ? `${h}:` : ""}
+          {mm}:{ss}
+        </span>
+        <button className="btn btn-sec" type="button" onClick={st.encerrarTreino}>
+          ■ Encerrar treino
+        </button>
+      </div>
+    );
+  }
+
+  const min = duracaoMin(sess);
+  return (
+    <div className="bloco-duracao">
+      <span className="tempo encerrado">✓ Treino encerrado · {min != null ? formatarDuracao(Math.max(min, 1)) : "—"}</span>
+      <button className="btn-mini" type="button" onClick={st.retomarTreino}>
+        Retomar
+      </button>
+    </div>
   );
 }

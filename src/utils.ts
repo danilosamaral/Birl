@@ -132,6 +132,34 @@ export function treinosVisiveis(treinos: Record<string, Treino>): Treino[] {
     .sort((a, b) => a.ordem - b.ordem);
 }
 
+/** Séries feitas/total de um treino numa sessão. */
+export function contarSeries(treino: Treino, sessao: Sessao): { feitas: number; total: number } {
+  let total = 0;
+  let feitas = 0;
+  for (const te of treino.exercicios) {
+    te.series.forEach((_s, si) => {
+      total++;
+      if (sessao.registros[`${te.id}:${si}`]?.done) feitas++;
+    });
+  }
+  return { feitas, total };
+}
+
+/** Duração da sessão em minutos (null se não iniciada/encerrada). */
+export function duracaoMin(sessao: Sessao): number | null {
+  if (!sessao.inicio || !sessao.fim) return null;
+  const ms = Date.parse(sessao.fim) - Date.parse(sessao.inicio);
+  if (isNaN(ms) || ms <= 0) return null;
+  return Math.max(1, Math.round(ms / 60000));
+}
+
+export function formatarDuracao(min: number): string {
+  if (min < 60) return `${min} min`;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  return m ? `${h}h ${String(m).padStart(2, "0")}min` : `${h}h`;
+}
+
 export function formatarDelta(delta: number): string {
   const s = delta > 0 ? "+" : "";
   return `${s}${delta.toFixed(delta % 1 ? 1 : 0)}`;

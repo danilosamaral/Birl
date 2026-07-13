@@ -8,6 +8,7 @@ import { Evolucao } from "./screens/Evolucao";
 import { Ajustes } from "./screens/Ajustes";
 import { DetalheExercicioModal } from "./detalhe";
 import { TimerDescansoPill } from "./TimerDescanso";
+import { contarSeries } from "./utils";
 
 const TABS: Array<{ id: Aba; rotulo: string; ic: string }> = [
   { id: "hoje", rotulo: "Hoje", ic: "🏋️" },
@@ -67,6 +68,7 @@ export function App() {
         </div>
         <h1 className="titulo">{titulo}</h1>
         <div className="sub-treino">{subtitulo}</div>
+        {st.tab === "hoje" && <ProgressoHoje />}
       </header>
 
       <main>
@@ -94,6 +96,28 @@ export function App() {
       <DetalheExercicioModal />
       <TimerDescansoPill />
     </>
+  );
+}
+
+/** Barra "Séries concluídas" fixa no cabeçalho — visível durante toda a rolagem. */
+function ProgressoHoje() {
+  const st = useStore();
+  const treino = st.treinoAtivoId ? st.treinos[st.treinoAtivoId] : null;
+  if (!treino || treino.deleted) return null;
+  const { feitas, total } = contarSeries(treino, st.sessaoAtiva());
+  if (!total) return null;
+  return (
+    <div className="prog-header">
+      <div className="progresso-top">
+        <span>Séries concluídas</span>
+        <b>
+          {feitas} / {total}
+        </b>
+      </div>
+      <div className="barra">
+        <i style={{ width: `${(feitas / total) * 100}%` }} />
+      </div>
+    </div>
   );
 }
 

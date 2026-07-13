@@ -5,9 +5,11 @@ import { ATRIBUTOS } from "../types";
 import type { Treino } from "../types";
 import {
   dataHoje,
+  duracaoMin,
   formatarData,
   formatarDataCurta,
   formatarDelta,
+  formatarDuracao,
   pontosAval,
   pontosCarga,
   sessoesDoTreino,
@@ -148,6 +150,8 @@ function VisaoTreino({ treino }: { treino: Treino }) {
   const st = useStore();
   const [metrica, setMetrica] = useState<Metrica>("carga");
   const sessoes = sessoesDoTreino(st.sessoes, treino.id);
+  const duracoes = sessoes.map(duracaoMin).filter((m): m is number => m != null && m > 0);
+  const duracaoMedia = duracoes.length ? Math.round(duracoes.reduce((a, b) => a + b, 0) / duracoes.length) : null;
 
   return (
     <>
@@ -162,6 +166,12 @@ function VisaoTreino({ treino }: { treino: Treino }) {
             <b>
               {formatarData(sessoes[0].data)} → {formatarData(sessoes[sessoes.length - 1].data)}
             </b>
+          </div>
+        )}
+        {duracaoMedia != null && (
+          <div className="linha">
+            <span>Duração média</span>
+            <b>{formatarDuracao(duracaoMedia)}</b>
           </div>
         )}
       </div>
