@@ -1,4 +1,4 @@
-import type { Sessao, Treino, TreinoExercicio } from "./types";
+import type { Programa, Sessao, Treino, TreinoExercicio } from "./types";
 
 export function dataHoje(): string {
   const d = new Date();
@@ -91,6 +91,19 @@ export function ultimaCargaAntes(
   const anteriores = sessoes.filter((s) => s.data < dataLimite);
   const { ultimo } = pontosCarga(anteriores, te);
   return ultimo;
+}
+
+export function programasVisiveis(programas: Record<string, Programa>): Programa[] {
+  return Object.values(programas)
+    .filter((p) => !p.deleted && !p.arquivado)
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+}
+
+/** Treinos de um programa, na ordem do programa, ignorando excluídos/arquivados. */
+export function treinosDoPrograma(programa: Programa, treinos: Record<string, Treino>): Treino[] {
+  return programa.treinoIds
+    .map((id) => treinos[id])
+    .filter((t): t is Treino => !!t && !t.deleted && !t.arquivado);
 }
 
 export function treinosVisiveis(treinos: Record<string, Treino>): Treino[] {

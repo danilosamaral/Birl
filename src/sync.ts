@@ -1,17 +1,18 @@
 import { createClient, type SupabaseClient, type User } from "@supabase/supabase-js";
 import { db } from "./db";
-import type { Exercicio, Treino, Sessao, Prefs } from "./types";
+import type { Exercicio, Treino, Sessao, Prefs, Programa } from "./types";
 
 const SUPA_URL = "https://eskmvqphpllietgiqnbi.supabase.co";
 const SUPA_KEY = "sb_publishable_sTX3lxzeUT-liEHT8_FdNA_AVJpJyQF";
 
-export type Entidade = Exercicio | Treino | Sessao | Prefs;
-export type Tabela = "exercicios" | "treinos" | "sessoes" | "prefs";
+export type Entidade = Exercicio | Treino | Sessao | Prefs | Programa;
+export type Tabela = "exercicios" | "treinos" | "sessoes" | "programas" | "prefs";
 
 const TABELA_REMOTA: Record<Tabela, string> = {
   exercicios: "birl_exercicios",
   treinos: "birl_treinos",
   sessoes: "birl_sessoes",
+  programas: "birl_programas",
   prefs: "birl_prefs",
 };
 

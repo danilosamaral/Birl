@@ -72,10 +72,24 @@ export interface Sessao {
   deleted?: boolean;
 }
 
-export interface Prefs {
-  id: "prefs";
+export interface Programa {
+  id: string;
+  nome: string;
+  descricao?: string;
+  /** treinos que compõem o programa, em ordem */
+  treinoIds: string[];
   /** dia da semana (0=domingo) -> treinoId ou null (descanso) */
   divisaoSemana: Record<number, string | null>;
+  arquivado?: boolean;
+  updated_at: string;
+  deleted?: boolean;
+}
+
+export interface Prefs {
+  id: "prefs";
+  /** legado (pré-programas): divisão global, migrada para o programa inicial */
+  divisaoSemana: Record<number, string | null>;
+  programaAtivoId?: string | null;
   updated_at: string;
   deleted?: boolean;
 }
