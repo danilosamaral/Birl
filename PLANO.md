@@ -138,10 +138,10 @@ Automática e idempotente, na primeira abertura da versão nova:
 
 Cada fase termina com deploy funcional e dados preservados.
 
-- **Fase 0 — Fundação** *(estrutura)*: scaffolding Vite+React+TS, PWA,
+- **Fase 0 — Fundação** ✅ *(estrutura)*: scaffolding Vite+React+TS, PWA,
   port do visual atual, Dexie + camada de sync, pipeline Vercel. O app
   continua funcionando exatamente como hoje, só que sobre a base nova.
-- **Fase 1 — Treinos editáveis + migração** *(o coração da mudança)*:
+- **Fase 1 — Treinos editáveis + migração** ✅ *(o coração da mudança)*:
   schema `birl_*`, migração automática do histórico, telas Meus Treinos e
   editor, registro apontando para treinos do usuário, última carga no
   registro. → **A partir daqui você já monta seus próprios treinos.**

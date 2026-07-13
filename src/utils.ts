@@ -1,0 +1,105 @@
+import type { Sessao, Treino, TreinoExercicio } from "./types";
+
+export function dataHoje(): string {
+  const d = new Date();
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const dd = String(d.getDate()).padStart(2, "0");
+  return `${d.getFullYear()}-${mm}-${dd}`;
+}
+
+export function formatarData(iso: string): string {
+  const [a, m, d] = iso.split("-");
+  return `${d}/${m}/${a}`;
+}
+
+export function formatarDataCurta(iso: string): string {
+  const [, m, d] = iso.split("-");
+  return `${d}/${m}`;
+}
+
+export function diaDaSemana(iso: string): number {
+  const [a, m, d] = iso.split("-").map(Number);
+  return new Date(a, m - 1, d).getDay();
+}
+
+export const DIAS_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
+/** Sessões de um treino, ordenadas por data. */
+export function sessoesDoTreino(sessoes: Record<string, Sessao>, treinoId: string): Sessao[] {
+  return Object.values(sessoes)
+    .filter((s) => s.treinoId === treinoId && !s.deleted)
+    .sort((a, b) => (a.data < b.data ? -1 : 1));
+}
+
+export interface PontoCarga {
+  date: string;
+  v: number;
+}
+
+export interface UltimaCarga {
+  kg: string;
+  reps: string;
+  rir: string;
+  sets: string;
+  date: string;
+}
+
+/**
+ * Pontos de carga de um exercício do treino: maior kg registrado na sessão
+ * entre as linhas de série daquele exercício (robusto a edições do plano).
+ */
+export function pontosCarga(
+  sessoes: Sessao[],
+  te: TreinoExercicio
+): { pts: PontoCarga[]; ultimo: UltimaCarga | null } {
+  const pts: PontoCarga[] = [];
+  let ultimo: UltimaCarga | null = null;
+  const prefixo = `${te.id}:`;
+  for (const s of sessoes) {
+    let melhor: { kg: number; reg: UltimaCarga } | null = null;
+    for (const [chave, r] of Object.entries(s.registros)) {
+      if (!chave.startsWith(prefixo)) continue;
+      const kg = parseFloat(r.kg);
+      if (isNaN(kg)) continue;
+      if (!melhor || kg > melhor.kg) {
+        melhor = { kg, reg: { kg: r.kg, reps: r.reps, rir: r.rir, sets: r.sets, date: s.data } };
+      }
+    }
+    if (melhor) {
+      pts.push({ date: s.data, v: melhor.kg });
+      ultimo = melhor.reg;
+    }
+  }
+  return { pts, ultimo };
+}
+
+export function pontosAval(sessoes: Sessao[], attr: "motivacao" | "energia" | "sono"): PontoCarga[] {
+  const pts: PontoCarga[] = [];
+  for (const s of sessoes) {
+    const v = s.aval?.[attr];
+    if (v != null && !isNaN(Number(v))) pts.push({ date: s.data, v: Number(v) });
+  }
+  return pts;
+}
+
+/** Última carga registrada de um exercício do treino antes de uma data. */
+export function ultimaCargaAntes(
+  sessoes: Sessao[],
+  te: TreinoExercicio,
+  dataLimite: string
+): UltimaCarga | null {
+  const anteriores = sessoes.filter((s) => s.data < dataLimite);
+  const { ultimo } = pontosCarga(anteriores, te);
+  return ultimo;
+}
+
+export function treinosVisiveis(treinos: Record<string, Treino>): Treino[] {
+  return Object.values(treinos)
+    .filter((t) => !t.deleted && !t.arquivado)
+    .sort((a, b) => a.ordem - b.ordem);
+}
+
+export function formatarDelta(delta: number): string {
+  const s = delta > 0 ? "+" : "";
+  return `${s}${delta.toFixed(delta % 1 ? 1 : 0)}`;
+}
