@@ -57,6 +57,7 @@ interface Estado {
 
   sessaoAtiva(): Sessao;
   setRegistro(chave: string, campo: keyof RegistroSerie, valor: string | boolean): void;
+  setRegistroCompleto(chave: string, registro: RegistroSerie): void;
   setAval(attr: keyof Aval, valor: number): void;
   setObs(obs: string): void;
   limparDia(): void;
@@ -318,6 +319,11 @@ export const useStore = create<Estado>((set, get) => {
       sess.registros = { ...sess.registros };
       const atual = sess.registros[chave] ?? { sets: "", kg: "", reps: "", rir: "", done: false };
       sess.registros[chave] = { ...atual, [campo]: valor };
+      salvarSessao(sess);
+    },
+    setRegistroCompleto(chave, registro) {
+      const sess = { ...get().sessaoAtiva() };
+      sess.registros = { ...sess.registros, [chave]: registro };
       salvarSessao(sess);
     },
     setAval(attr, valor) {

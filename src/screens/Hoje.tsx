@@ -14,6 +14,7 @@ import {
   treinosDoPrograma,
   treinosVisiveis,
   ultimaCargaAntes,
+  ultimoRegistroDaSerie,
 } from "../utils";
 
 const REG_VAZIO: RegistroSerie = { sets: "", kg: "", reps: "", rir: "", done: false };
@@ -166,9 +167,24 @@ export function Hoje() {
             <div className="ex-series">
               {te.series.map((s, si) => {
                 const chave = regKey(te.id, si);
-                const r = sess.registros[chave] ?? REG_VAZIO;
+                const salvo = sess.registros[chave];
+                const registroVazio = !salvo || (!salvo.sets && !salvo.kg && !salvo.reps && !salvo.rir && !salvo.done);
+                // pré-carrega os números da última sessão como sugestão editável;
+                // eles só são gravados quando você marca Feito ou ajusta um campo
+                const sugestao = registroVazio ? ultimoRegistroDaSerie(historico, chave, st.dataAtiva) : null;
+                const r = salvo ?? REG_VAZIO;
+                const mostra = sugestao ?? r;
+                const mudar = (campo: "sets" | "kg" | "reps" | "rir", valor: string) => {
+                  if (sugestao) st.setRegistroCompleto(chave, { ...sugestao, done: false, [campo]: valor });
+                  else st.setRegistro(chave, campo, valor);
+                };
+                const marcar = (checked: boolean) => {
+                  if (sugestao) st.setRegistroCompleto(chave, { ...sugestao, done: checked });
+                  else st.setRegistro(chave, "done", checked);
+                };
                 const setsHint = s.presc.split("×")[0].trim();
                 const glosNota = glosDaNota(s.nota);
+                const clsInput = sugestao ? "sugerida" : "";
                 return (
                   <div className={`serie${r.done ? " feita" : ""}`} key={si}>
                     <div className="serie-top">
@@ -186,12 +202,13 @@ export function Hoje() {
                       <span className="presc">
                         <b>{s.presc}</b> · intervalo {s.int}
                       </span>
+                      {sugestao && <span className="tag-sugestao">última sessão</span>}
                       <label className="check">
                         <input
                           type="checkbox"
                           checked={r.done}
-                          onChange={(e) => st.setRegistro(chave, "done", e.target.checked)}
-                          aria-label="Marcar como feita"
+                          onChange={(e) => marcar(e.target.checked)}
+                          aria-label={sugestao ? "Marcar como feita mantendo os números da última sessão" : "Marcar como feita"}
                         />{" "}
                         Feito
                       </label>
@@ -207,9 +224,10 @@ export function Hoje() {
                         <input
                           type="text"
                           inputMode="numeric"
-                          value={r.sets}
+                          className={clsInput}
+                          value={mostra.sets}
                           placeholder={setsHint}
-                          onChange={(e) => st.setRegistro(chave, "sets", e.target.value)}
+                          onChange={(e) => mudar("sets", e.target.value)}
                           aria-label={`Quantas séries você fez de ${ex?.nome ?? ""}`}
                         />
                       </div>
@@ -218,9 +236,10 @@ export function Hoje() {
                         <input
                           type="text"
                           inputMode="decimal"
-                          value={r.kg}
+                          className={clsInput}
+                          value={mostra.kg}
                           placeholder="0"
-                          onChange={(e) => st.setRegistro(chave, "kg", e.target.value)}
+                          onChange={(e) => mudar("kg", e.target.value)}
                           aria-label={`Carga em quilos de ${ex?.nome ?? ""}`}
                         />
                       </div>
@@ -229,9 +248,10 @@ export function Hoje() {
                         <input
                           type="text"
                           inputMode="numeric"
-                          value={r.reps}
+                          className={clsInput}
+                          value={mostra.reps}
                           placeholder="0"
-                          onChange={(e) => st.setRegistro(chave, "reps", e.target.value)}
+                          onChange={(e) => mudar("reps", e.target.value)}
                           aria-label={`Repetições feitas de ${ex?.nome ?? ""}`}
                         />
                       </div>
@@ -246,9 +266,10 @@ export function Hoje() {
                           <input
                             type="text"
                             inputMode="numeric"
-                            value={r.rir}
+                            className={clsInput}
+                            value={mostra.rir}
                             placeholder="0"
-                            onChange={(e) => st.setRegistro(chave, "rir", e.target.value)}
+                            onChange={(e) => mudar("rir", e.target.value)}
                             aria-label={`Repetições em reserva de ${ex?.nome ?? ""}`}
                           />
                         </div>

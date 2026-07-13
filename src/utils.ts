@@ -82,6 +82,26 @@ export function pontosAval(sessoes: Sessao[], attr: "motivacao" | "energia" | "s
   return pts;
 }
 
+/**
+ * Último registro daquela linha de série (mesma posição) em sessões
+ * anteriores à data — usado para pré-carregar os campos como sugestão.
+ */
+export function ultimoRegistroDaSerie(
+  sessoes: Sessao[],
+  chave: string,
+  dataLimite: string
+): { sets: string; kg: string; reps: string; rir: string } | null {
+  for (let i = sessoes.length - 1; i >= 0; i--) {
+    const s = sessoes[i];
+    if (s.data >= dataLimite) continue;
+    const r = s.registros[chave];
+    if (r && (r.sets || r.kg || r.reps || r.rir)) {
+      return { sets: r.sets, kg: r.kg, reps: r.reps, rir: r.rir };
+    }
+  }
+  return null;
+}
+
 /** Última carga registrada de um exercício do treino antes de uma data. */
 export function ultimaCargaAntes(
   sessoes: Sessao[],
