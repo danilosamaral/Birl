@@ -1,5 +1,6 @@
 import { useStore } from "../store";
 import { useGlos, ListaGlossario } from "../glos";
+import { useDetalheEx } from "../detalhe";
 import { ROTULO_TIPO, ATRIBUTOS, regKey } from "../types";
 import type { RegistroSerie } from "../types";
 import { glosDaNota } from "../glossario";
@@ -18,6 +19,7 @@ const REG_VAZIO: RegistroSerie = { sets: "", kg: "", reps: "", rir: "", done: fa
 export function Hoje() {
   const st = useStore();
   const abrirGlos = useGlos((s) => s.abrir);
+  const abrirDetalhe = useDetalheEx((s) => s.abrir);
   const treinos = treinosVisiveis(st.treinos);
   const treino = st.treinoAtivoId ? st.treinos[st.treinoAtivoId] : null;
   const sess = st.sessaoAtiva();
@@ -125,7 +127,13 @@ export function Hoje() {
         return (
           <section className="exercicio" key={te.id}>
             <div className="ex-cabec">
-              <div className="ex-nome">{ex?.nome ?? "Exercício removido"}</div>
+              {ex ? (
+                <button className="ex-nome clicavel" type="button" onClick={() => abrirDetalhe(ex.id)}>
+                  {ex.nome} <span className="info-ic" aria-hidden="true">ⓘ</span>
+                </button>
+              ) : (
+                <div className="ex-nome">Exercício removido</div>
+              )}
               {ex?.grupo && <div className="ex-grupo">{ex.grupo}</div>}
               {te.aviso && <div className="ex-aviso">⚠ {te.aviso}</div>}
               {ultima && (

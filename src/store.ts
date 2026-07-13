@@ -1,13 +1,14 @@
 import { create } from "zustand";
 import { db, getMeta, setMeta } from "./db";
 import { gerarSeeds } from "./seeds";
+import { gerarBiblioteca, gerarEnriquecimentoSeeds, SEED_EPOCH_V2 } from "./biblioteca";
 import { migrarLocal, migrarRemoto } from "./migracao";
 import { enfileirar, setLogado, sincronizarTudo, supa, type Tabela } from "./sync";
 import type { Exercicio, Prefs, RegistroSerie, Sessao, Treino, Aval } from "./types";
 import { agora, novoId, sessaoId } from "./types";
 import { dataHoje, diaDaSemana, treinosVisiveis } from "./utils";
 
-export type Aba = "hoje" | "treinos" | "evolucao" | "ajustes";
+export type Aba = "hoje" | "treinos" | "biblioteca" | "evolucao" | "ajustes";
 
 const PREFS_PADRAO = (): Prefs => ({
   id: "prefs",
@@ -104,6 +105,21 @@ export const useStore = create<Estado>((set, get) => {
       const trIds = await db.treinos.bulkGet(seeds.treinos.map((t) => t.id));
       await db.treinos.bulkAdd(seeds.treinos.filter((_, i) => !trIds[i])).catch(() => {});
       if (!(await db.prefs.get("prefs"))) await db.prefs.add(PREFS_PADRAO()).catch(() => {});
+
+      // v2: biblioteca curada + imagens/instruções nos exercícios dos treinos padrão
+      if (((await getMeta<number>("seed_version")) ?? 1) < 2) {
+        const lib = gerarBiblioteca();
+        const libExistentes = await db.exercicios.bulkGet(lib.map((e) => e.id));
+        await db.exercicios.bulkAdd(lib.filter((_, i) => !libExistentes[i])).catch(() => {});
+        for (const [id, enr] of Object.entries(gerarEnriquecimentoSeeds())) {
+          const row = await db.exercicios.get(id);
+          // só enriquece exercícios ainda sem mídia/instruções do usuário
+          if (row && !row.instrucoes && !row.midia) {
+            await db.exercicios.put({ ...row, ...enr, updated_at: SEED_EPOCH_V2 });
+          }
+        }
+        await setMeta("seed_version", 2);
+      }
 
       const migradas = await migrarLocal();
       await get().recarregar();

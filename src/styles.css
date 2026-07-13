@@ -189,6 +189,28 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
 .modal-corpo input{width:100%;background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:10px;padding:12px;font-size:1rem;margin-bottom:10px;min-height:46px;border-style:solid}
 .msg-aviso{font-size:.82rem;color:var(--amber);min-height:1em;margin:6px 0 0}
 
+/* ---------- biblioteca / detalhe de exercício ---------- */
+.chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
+.chips button{background:var(--surface-2);border:1px solid var(--line);color:var(--muted);border-radius:99px;padding:7px 14px;font-size:.8rem;cursor:pointer;min-height:38px;font-family:var(--head);text-transform:uppercase;letter-spacing:.03em}
+.chips button.ativo{background:var(--orange);border-color:var(--orange);color:#fff}
+.bib-item{display:flex;align-items:center;gap:12px;width:100%;text-align:left;background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:10px 12px;margin-bottom:10px;cursor:pointer;color:var(--text)}
+.bib-item:active{background:var(--surface-2)}
+.bib-thumb{width:64px;height:48px;object-fit:cover;border-radius:8px;background:#fff;flex:0 0 auto}
+.bib-thumb.vazia{display:inline-flex;align-items:center;justify-content:center;background:var(--surface-2);font-size:1.3rem}
+.bib-info{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1}
+.bib-nome{font-family:var(--head);font-weight:600;font-size:.98rem;line-height:1.2}
+.bib-meta{color:var(--muted);font-size:.76rem;text-transform:uppercase;font-family:var(--head);letter-spacing:.04em}
+.bib-seta{color:var(--orange);font-size:1.2rem;flex:0 0 auto}
+.detalhe-imgs{display:flex;gap:10px;overflow-x:auto;margin:4px 0 12px;-webkit-overflow-scrolling:touch}
+.detalhe-imgs img{height:150px;border-radius:10px;background:#fff;flex:0 0 auto;max-width:75%;object-fit:contain}
+.detalhe-imgs .img-wrap{position:relative;flex:0 0 auto}
+.detalhe-imgs .img-wrap .btn-mini{position:absolute;top:6px;right:6px;background:rgba(12,12,13,.8)}
+.passos{margin:0 0 14px;padding-left:20px;color:#d9d9dc;font-size:.92rem}
+.passos li{margin-bottom:8px}
+.ex-nome.clicavel{background:none;border:none;padding:0;color:var(--text);cursor:pointer;text-align:left;width:100%}
+.ex-nome.clicavel .info-ic{color:var(--orange-soft);font-size:.85rem}
+.form-linha textarea{min-height:96px}
+
 footer.creditos{text-align:center;color:#55555a;font-size:.74rem;padding:20px 16px 30px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 

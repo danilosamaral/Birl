@@ -29,6 +29,12 @@ export default defineConfig({
             urlPattern: /^https:\/\/fonts\.(googleapis|gstatic)\.com\/.*/,
             handler: "CacheFirst",
             options: { cacheName: "google-fonts", expiration: { maxEntries: 30, maxAgeSeconds: 60 * 60 * 24 * 365 } }
+          },
+          {
+            // imagens de execução da biblioteca de exercícios (funcionam offline após o 1º acesso)
+            urlPattern: /^https:\/\/cdn\.jsdelivr\.net\/gh\/yuhonas\/free-exercise-db@.*\.jpg$/,
+            handler: "CacheFirst",
+            options: { cacheName: "exercicio-imgs", expiration: { maxEntries: 400, maxAgeSeconds: 60 * 60 * 24 * 180 } }
           }
         ]
       }
