@@ -1,7 +1,7 @@
 import { useRef, useState } from "react";
 import { useStore } from "../store";
 import { supa, traduzErro } from "../sync";
-import { DIAS_SEMANA, treinosVisiveis } from "../utils";
+import { treinosVisiveis } from "../utils";
 
 export function Ajustes() {
   const st = useStore();
@@ -34,12 +34,10 @@ export function Ajustes() {
 
       <div className="card">
         <h3>Divisão da semana</h3>
-        <p className="card-sub">Qual treino é sugerido em cada dia. Aparece na tela Hoje.</p>
-        <div className="divisao-grid">
-          {[1, 2, 3, 4, 5, 6, 0].map((dia) => (
-            <DivisaoDia key={dia} dia={dia} />
-          ))}
-        </div>
+        <p className="card-sub">
+          A divisão agora pertence a cada <b>programa</b> de treino — configure na aba Treinos, em Programas → Editar. O
+          programa ativo é o que guia a tela Hoje.
+        </p>
       </div>
 
       <div className="card">
@@ -67,25 +65,6 @@ export function Ajustes() {
 
       {loginAberto && <ModalLogin onFechar={() => setLoginAberto(false)} />}
       {backupAberto && <ModalBackup onFechar={() => setBackupAberto(false)} />}
-    </>
-  );
-}
-
-function DivisaoDia({ dia }: { dia: number }) {
-  const st = useStore();
-  const treinos = treinosVisiveis(st.treinos);
-  const valor = st.prefs.divisaoSemana[dia] ?? "";
-  return (
-    <>
-      <span className="dia">{DIAS_SEMANA[dia]}</span>
-      <select value={valor} onChange={(e) => st.setDivisao(dia, e.target.value || null)} aria-label={`Treino de ${DIAS_SEMANA[dia]}`}>
-        <option value="">Descanso</option>
-        {treinos.map((t) => (
-          <option key={t.id} value={t.id}>
-            {t.nome}
-          </option>
-        ))}
-      </select>
     </>
   );
 }

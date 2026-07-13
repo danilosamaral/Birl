@@ -4,11 +4,13 @@ import { gerarSeeds } from "./seeds";
 import { gerarBiblioteca, gerarEnriquecimentoSeeds, SEED_EPOCH_V2 } from "./biblioteca";
 import { migrarLocal, migrarRemoto } from "./migracao";
 import { enfileirar, setLogado, sincronizarTudo, supa, type Tabela } from "./sync";
-import type { Exercicio, Prefs, RegistroSerie, Sessao, Treino, Aval } from "./types";
+import type { Exercicio, Prefs, Programa, RegistroSerie, Sessao, Treino, Aval } from "./types";
 import { agora, novoId, sessaoId } from "./types";
-import { dataHoje, diaDaSemana, treinosVisiveis } from "./utils";
+import { dataHoje, diaDaSemana, treinosDoPrograma, treinosVisiveis } from "./utils";
 
 export type Aba = "hoje" | "treinos" | "biblioteca" | "evolucao" | "ajustes";
+
+const PROGRAMA_INICIAL_ID = "sd_prog_intermediario";
 
 const PREFS_PADRAO = (): Prefs => ({
   id: "prefs",
@@ -30,6 +32,7 @@ interface Estado {
   exercicios: Record<string, Exercicio>;
   treinos: Record<string, Treino>;
   sessoes: Record<string, Sessao>;
+  programas: Record<string, Programa>;
   prefs: Prefs;
 
   init(): Promise<void>;
@@ -45,13 +48,18 @@ interface Estado {
   excluirTreino(id: string): void;
   salvarExercicio(e: Exercicio): void;
 
+  programaAtivo(): Programa | null;
+  setProgramaAtivo(id: string | null): void;
+  salvarPrograma(p: Programa): void;
+  duplicarPrograma(id: string): void;
+  arquivarPrograma(id: string, arquivado: boolean): void;
+  excluirPrograma(id: string): void;
+
   sessaoAtiva(): Sessao;
   setRegistro(chave: string, campo: keyof RegistroSerie, valor: string | boolean): void;
   setAval(attr: keyof Aval, valor: number): void;
   setObs(obs: string): void;
   limparDia(): void;
-
-  setDivisao(dia: number, treinoId: string | null): void;
 
   exportarBackup(): string;
   importarBackup(json: string): Promise<void>;
@@ -76,9 +84,16 @@ export const useStore = create<Estado>((set, get) => {
   }
 
   function treinoSugerido(data: string): string | null {
-    const { prefs, treinos } = get();
-    const sugestao = prefs.divisaoSemana[diaDaSemana(data)];
-    if (sugestao && treinos[sugestao] && !treinos[sugestao].deleted && !treinos[sugestao].arquivado) return sugestao;
+    const { treinos } = get();
+    const prog = get().programaAtivo();
+    const valido = (id: string | null | undefined) =>
+      !!id && !!treinos[id] && !treinos[id].deleted && !treinos[id].arquivado;
+    if (prog) {
+      const sugestao = prog.divisaoSemana[diaDaSemana(data)];
+      if (valido(sugestao)) return sugestao!;
+      const doPrograma = treinosDoPrograma(prog, treinos)[0]?.id;
+      if (valido(doPrograma)) return doPrograma;
+    }
     return treinosVisiveis(treinos)[0]?.id ?? null;
   }
 
@@ -95,6 +110,7 @@ export const useStore = create<Estado>((set, get) => {
     exercicios: {},
     treinos: {},
     sessoes: {},
+    programas: {},
     prefs: PREFS_PADRAO(),
 
     async init() {
@@ -121,6 +137,28 @@ export const useStore = create<Estado>((set, get) => {
         await setMeta("seed_version", 2);
       }
 
+      // v3: programas de treino — a ficha A/B/C/D vira o programa inicial,
+      // herdando a divisão da semana configurada nas prefs
+      if (((await getMeta<number>("seed_version")) ?? 1) < 3) {
+        if (!(await db.programas.get(PROGRAMA_INICIAL_ID))) {
+          const prefsRow = (await db.prefs.get("prefs")) ?? PREFS_PADRAO();
+          await db.programas
+            .add({
+              id: PROGRAMA_INICIAL_ID,
+              nome: "Intermediário 4x na Semana",
+              descricao: "Programa original da ficha A/B/C/D.",
+              treinoIds: ["sd_A", "sd_B", "sd_C", "sd_D"],
+              divisaoSemana: { ...prefsRow.divisaoSemana },
+              updated_at: agora(),
+            })
+            .catch(() => {});
+          await db.prefs.put({ ...prefsRow, programaAtivoId: PROGRAMA_INICIAL_ID, updated_at: agora() });
+          enfileirar("programas", PROGRAMA_INICIAL_ID);
+          enfileirar("prefs", "prefs");
+        }
+        await setMeta("seed_version", 3);
+      }
+
       const migradas = await migrarLocal();
       await get().recarregar();
       set({ pronto: true, migradas, treinoAtivoId: treinoSugerido(get().dataAtiva) });
@@ -144,16 +182,18 @@ export const useStore = create<Estado>((set, get) => {
     },
 
     async recarregar() {
-      const [exs, trs, sss, prefs] = await Promise.all([
+      const [exs, trs, sss, prgs, prefs] = await Promise.all([
         db.exercicios.toArray(),
         db.treinos.toArray(),
         db.sessoes.toArray(),
+        db.programas.toArray(),
         db.prefs.get("prefs"),
       ]);
       set({
         exercicios: Object.fromEntries(exs.map((e) => [e.id, e])),
         treinos: Object.fromEntries(trs.map((t) => [t.id, t])),
         sessoes: Object.fromEntries(sss.filter((s) => !s.deleted).map((s) => [s.id, s])),
+        programas: Object.fromEntries(prgs.map((p) => [p.id, p])),
         prefs: prefs ?? PREFS_PADRAO(),
       });
     },
@@ -201,12 +241,71 @@ export const useStore = create<Estado>((set, get) => {
       delete treinos[id];
       set({ treinos: { ...treinos, [id]: morto } });
       persistir("treinos", morto);
+      // tira o treino dos programas que o referenciam
+      for (const p of Object.values(get().programas)) {
+        if (p.deleted || !p.treinoIds.includes(id)) continue;
+        const divisao = Object.fromEntries(
+          Object.entries(p.divisaoSemana).map(([d, tid]) => [d, tid === id ? null : tid])
+        );
+        get().salvarPrograma({ ...p, treinoIds: p.treinoIds.filter((x) => x !== id), divisaoSemana: divisao });
+      }
       if (get().treinoAtivoId === id) set({ treinoAtivoId: treinoSugerido(get().dataAtiva) });
     },
     salvarExercicio(e) {
       const atualizado = { ...e, updated_at: agora() };
       set({ exercicios: { ...get().exercicios, [e.id]: atualizado } });
       persistir("exercicios", atualizado);
+    },
+
+    programaAtivo() {
+      const { prefs, programas } = get();
+      const p = prefs.programaAtivoId ? programas[prefs.programaAtivoId] : null;
+      if (p && !p.deleted && !p.arquivado) return p;
+      // fallback: primeiro programa visível
+      return (
+        Object.values(programas)
+          .filter((x) => !x.deleted && !x.arquivado)
+          .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"))[0] ?? null
+      );
+    },
+    setProgramaAtivo(id) {
+      const prefs: Prefs = { ...get().prefs, programaAtivoId: id, updated_at: agora() };
+      set({ prefs });
+      persistir("prefs", prefs);
+      set({ treinoAtivoId: treinoSugerido(get().dataAtiva) });
+    },
+    salvarPrograma(p) {
+      const atualizado = { ...p, updated_at: agora() };
+      set({ programas: { ...get().programas, [p.id]: atualizado } });
+      persistir("programas", atualizado);
+    },
+    duplicarPrograma(id) {
+      const orig = get().programas[id];
+      if (!orig) return;
+      const copia: Programa = {
+        ...orig,
+        id: novoId(),
+        nome: `${orig.nome} (cópia)`,
+        treinoIds: [...orig.treinoIds],
+        divisaoSemana: { ...orig.divisaoSemana },
+        arquivado: false,
+        updated_at: agora(),
+      };
+      delete copia.deleted;
+      set({ programas: { ...get().programas, [copia.id]: copia } });
+      persistir("programas", copia);
+    },
+    arquivarPrograma(id, arquivado) {
+      const p = get().programas[id];
+      if (p) get().salvarPrograma({ ...p, arquivado });
+    },
+    excluirPrograma(id) {
+      const p = get().programas[id];
+      if (!p) return;
+      const morto = { ...p, deleted: true, updated_at: agora() };
+      set({ programas: { ...get().programas, [id]: morto } });
+      persistir("programas", morto);
+      if (get().prefs.programaAtivoId === id) get().setProgramaAtivo(null);
     },
 
     sessaoAtiva() {
@@ -240,19 +339,9 @@ export const useStore = create<Estado>((set, get) => {
       enfileirar("sessoes", sess.id);
     },
 
-    setDivisao(dia, treinoId) {
-      const prefs: Prefs = {
-        ...get().prefs,
-        divisaoSemana: { ...get().prefs.divisaoSemana, [dia]: treinoId },
-        updated_at: agora(),
-      };
-      set({ prefs });
-      persistir("prefs", prefs);
-    },
-
     exportarBackup() {
-      const { exercicios, treinos, sessoes, prefs } = get();
-      return JSON.stringify({ versao: 2, exercicios, treinos, sessoes, prefs }, null, 2);
+      const { exercicios, treinos, sessoes, programas, prefs } = get();
+      return JSON.stringify({ versao: 2, exercicios, treinos, sessoes, programas, prefs }, null, 2);
     },
     async importarBackup(json) {
       const b = JSON.parse(json) as {
@@ -260,6 +349,7 @@ export const useStore = create<Estado>((set, get) => {
         exercicios: Record<string, Exercicio>;
         treinos: Record<string, Treino>;
         sessoes: Record<string, Sessao>;
+        programas?: Record<string, Programa>;
         prefs?: Prefs;
       };
       if (b.versao !== 2 || typeof b.treinos !== "object" || typeof b.sessoes !== "object") {
@@ -268,10 +358,12 @@ export const useStore = create<Estado>((set, get) => {
       await db.exercicios.bulkPut(Object.values(b.exercicios ?? {}));
       await db.treinos.bulkPut(Object.values(b.treinos ?? {}));
       await db.sessoes.bulkPut(Object.values(b.sessoes ?? {}));
+      await db.programas.bulkPut(Object.values(b.programas ?? {}));
       if (b.prefs) await db.prefs.put(b.prefs);
       for (const e of Object.values(b.exercicios ?? {})) enfileirar("exercicios", e.id);
       for (const t of Object.values(b.treinos ?? {})) enfileirar("treinos", t.id);
       for (const s of Object.values(b.sessoes ?? {})) enfileirar("sessoes", s.id);
+      for (const p of Object.values(b.programas ?? {})) enfileirar("programas", p.id);
       await get().recarregar();
     },
 

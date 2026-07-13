@@ -9,7 +9,9 @@ import {
   dataHoje,
   diaDaSemana,
   formatarData,
+  programasVisiveis,
   sessoesDoTreino,
+  treinosDoPrograma,
   treinosVisiveis,
   ultimaCargaAntes,
 } from "../utils";
@@ -20,21 +22,26 @@ export function Hoje() {
   const st = useStore();
   const abrirGlos = useGlos((s) => s.abrir);
   const abrirDetalhe = useDetalheEx((s) => s.abrir);
-  const treinos = treinosVisiveis(st.treinos);
+  const programas = programasVisiveis(st.programas);
+  const programa = st.programaAtivo();
+  const treinos = programa ? treinosDoPrograma(programa, st.treinos) : treinosVisiveis(st.treinos);
   const treino = st.treinoAtivoId ? st.treinos[st.treinoAtivoId] : null;
   const sess = st.sessaoAtiva();
 
-  const sugestaoId = st.prefs.divisaoSemana[diaDaSemana(st.dataAtiva)];
+  const sugestaoId = programa?.divisaoSemana[diaDaSemana(st.dataAtiva)];
   const sugestao = sugestaoId ? st.treinos[sugestaoId] : null;
 
   if (treinos.length === 0) {
     return (
       <div className="vazio">
-        Nenhum treino cadastrado. Crie o primeiro na aba <b>Treinos</b>.
+        {programa
+          ? `O programa "${programa.nome}" ainda não tem treinos — adicione na aba Treinos.`
+          : "Nenhum treino cadastrado. Crie o primeiro na aba Treinos."}
       </div>
     );
   }
   if (!treino) return null;
+  const treinoForaDoPrograma = !treinos.some((t) => t.id === treino.id);
 
   const historico = sessoesDoTreino(st.sessoes, treino.id);
   let total = 0;
@@ -48,6 +55,18 @@ export function Hoje() {
 
   return (
     <>
+      {programas.length > 0 && (
+        <div className="prog-barra">
+          <label htmlFor="sel-programa">Programa</label>
+          <select id="sel-programa" value={programa?.id ?? ""} onChange={(e) => st.setProgramaAtivo(e.target.value || null)}>
+            {programas.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
       <nav className="abas" aria-label="Selecionar treino">
         {treinos.map((t) => (
           <button
@@ -60,6 +79,11 @@ export function Hoje() {
             {t.nome.replace(/^Treino /i, "")}
           </button>
         ))}
+        {treinoForaDoPrograma && (
+          <button className="aba" type="button" aria-selected="true">
+            {treino.nome.replace(/^Treino /i, "")}
+          </button>
+        )}
       </nav>
 
       <div style={{ padding: "0 0 8px" }}>
@@ -71,13 +95,8 @@ export function Hoje() {
           </button>
         </div>
         <div className="sugestao-dia">
-          {DIAS_SEMANA[diaDaSemana(st.dataAtiva)]}:{" "}
-          {sugestao ? (
-            <b>{sugestao.nome}</b>
-          ) : (
-            <b>descanso</b>
-          )}{" "}
-          na sua divisão da semana
+          {DIAS_SEMANA[diaDaSemana(st.dataAtiva)]}: <b>{sugestao ? sugestao.nome : "descanso"}</b>
+          {programa ? ` na divisão de "${programa.nome}"` : ""}
         </div>
         <div className="progresso-wrap">
           <div className="progresso-top">

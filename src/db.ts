@@ -1,5 +1,5 @@
 import Dexie, { type Table } from "dexie";
-import type { Exercicio, Treino, Sessao, Prefs } from "./types";
+import type { Exercicio, Treino, Sessao, Prefs, Programa } from "./types";
 
 /** Metadados locais (flags de migração, fila de sync). */
 export interface Meta {
@@ -11,6 +11,7 @@ class BirlDB extends Dexie {
   exercicios!: Table<Exercicio, string>;
   treinos!: Table<Treino, string>;
   sessoes!: Table<Sessao, string>;
+  programas!: Table<Programa, string>;
   prefs!: Table<Prefs, string>;
   meta!: Table<Meta, string>;
 
@@ -22,6 +23,9 @@ class BirlDB extends Dexie {
       sessoes: "id, data, treinoId",
       prefs: "id",
       meta: "id",
+    });
+    this.version(2).stores({
+      programas: "id",
     });
   }
 }
