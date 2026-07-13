@@ -90,6 +90,8 @@ export interface Prefs {
   /** legado (pré-programas): divisão global, migrada para o programa inicial */
   divisaoSemana: Record<number, string | null>;
   programaAtivoId?: string | null;
+  /** timer de descanso automático ao marcar série feita (padrão: ligado) */
+  timerDescanso?: boolean;
   updated_at: string;
   deleted?: boolean;
 }

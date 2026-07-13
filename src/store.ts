@@ -48,6 +48,7 @@ interface Estado {
   excluirTreino(id: string): void;
   salvarExercicio(e: Exercicio): void;
 
+  setTimerDescanso(ligado: boolean): void;
   programaAtivo(): Programa | null;
   setProgramaAtivo(id: string | null): void;
   salvarPrograma(p: Programa): void;
@@ -258,6 +259,11 @@ export const useStore = create<Estado>((set, get) => {
       persistir("exercicios", atualizado);
     },
 
+    setTimerDescanso(ligado) {
+      const prefs: Prefs = { ...get().prefs, timerDescanso: ligado, updated_at: agora() };
+      set({ prefs });
+      persistir("prefs", prefs);
+    },
     programaAtivo() {
       const { prefs, programas } = get();
       const p = prefs.programaAtivoId ? programas[prefs.programaAtivoId] : null;

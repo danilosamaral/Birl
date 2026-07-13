@@ -7,6 +7,7 @@ import { Biblioteca } from "./screens/Biblioteca";
 import { Evolucao } from "./screens/Evolucao";
 import { Ajustes } from "./screens/Ajustes";
 import { DetalheExercicioModal } from "./detalhe";
+import { TimerDescansoPill } from "./TimerDescanso";
 
 const TABS: Array<{ id: Aba; rotulo: string; ic: string }> = [
   { id: "hoje", rotulo: "Hoje", ic: "🏋️" },
@@ -91,6 +92,7 @@ export function App() {
       <AvisoSalvo />
       <GlosModal />
       <DetalheExercicioModal />
+      <TimerDescansoPill />
     </>
   );
 }
