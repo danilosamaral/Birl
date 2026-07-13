@@ -68,6 +68,9 @@ export interface Sessao {
   registros: Record<string, RegistroSerie>;
   obs: string;
   aval: Aval;
+  /** timestamps de iniciar/encerrar treino (duração da sessão) */
+  inicio?: string;
+  fim?: string;
   updated_at: string;
   deleted?: boolean;
 }

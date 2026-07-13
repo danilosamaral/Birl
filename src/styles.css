@@ -50,6 +50,12 @@ input[type=date]{background:var(--surface-2);color:var(--text);border:1px solid 
 .sugestao-dia{margin-top:8px;font-size:.8rem;color:var(--muted)}
 .sugestao-dia b{color:var(--green-soft)}
 .progresso-wrap{margin-top:12px}
+.prog-header{margin-top:10px}
+.prog-header .progresso-top{font-size:.66rem}
+.bloco-duracao{display:flex;align-items:center;gap:10px;margin-top:12px;flex-wrap:wrap}
+.bloco-duracao .tempo{font-family:var(--head);font-weight:600;font-size:1.05rem;color:var(--orange-soft);white-space:nowrap}
+.bloco-duracao .tempo.encerrado{color:var(--green-soft);font-size:.9rem}
+.bloco-duracao .btn{flex:1}
 .progresso-top{display:flex;justify-content:space-between;align-items:baseline;font-family:var(--head);text-transform:uppercase;font-size:.72rem;letter-spacing:.05em;color:var(--muted)}
 .progresso-top b{color:var(--text);font-size:.9rem}
 .barra{height:8px;background:var(--surface-2);border-radius:99px;overflow:hidden;margin-top:5px;border:1px solid var(--line)}
