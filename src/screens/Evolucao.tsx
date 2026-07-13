@@ -27,6 +27,8 @@ import {
 
 type Metrica = "carga" | "volume" | "e1rm";
 
+const MESES_CURTOS = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
 const ROTULO_METRICA: Record<Metrica, string> = { carga: "Carga (kg)", volume: "Volume", e1rm: "1RM est." };
 
 export function Evolucao() {
@@ -81,6 +83,19 @@ function VisaoGeral() {
   );
   const programa = st.programaAtivo();
   const grade = gradeHeatmap(todas, hoje);
+  // rótulo de mês na primeira coluna de cada mês; um mês parcial na borda
+  // cede o lugar quando o rótulo seguinte ficaria colado (< 3 colunas)
+  const rotulosMeses = grade.map(() => "");
+  let ultimoRotulo = -99;
+  grade.forEach((col, i) => {
+    const mes = MESES_CURTOS[Number(col[0].date.split("-")[1]) - 1];
+    const anterior = i > 0 ? MESES_CURTOS[Number(grade[i - 1][0].date.split("-")[1]) - 1] : null;
+    if (mes !== anterior) {
+      if (ultimoRotulo >= 0 && i - ultimoRotulo < 3) rotulosMeses[ultimoRotulo] = "";
+      rotulosMeses[i] = mes;
+      ultimoRotulo = i;
+    }
+  });
   const streak = streakSemanas(todas, hoje);
   const ader = programa ? aderencia(programa, todas, hoje) : null;
   const volSem = volumeSemanal(todas);
@@ -112,17 +127,32 @@ function VisaoGeral() {
           Últimas 16 semanas — cada coluna é uma semana (segunda a domingo).
         </p>
         <div className="heatmap" role="img" aria-label="Calendário de frequência de treinos">
-          {grade.map((col, i) => (
-            <div className="hm-col" key={i}>
-              {col.map((c) => (
-                <span
-                  key={c.date}
-                  className={`hm-dia${c.futuro ? " futuro" : c.count >= 2 ? " n2" : c.count === 1 ? " n1" : ""}`}
-                  title={`${formatarData(c.date)}: ${c.count} treino(s)`}
-                />
+          <div className="hm-meses">
+            <span className="hm-esp" />
+            {rotulosMeses.map((mes, i) => (
+              <span className="hm-mes" key={i}>
+                {mes}
+              </span>
+            ))}
+          </div>
+          <div className="hm-grade">
+            <div className="hm-rotulos" aria-hidden="true">
+              {["S", "T", "Q", "Q", "S", "S", "D"].map((d, i) => (
+                <span key={i}>{d}</span>
               ))}
             </div>
-          ))}
+            {grade.map((col, i) => (
+              <div className="hm-col" key={i}>
+                {col.map((c) => (
+                  <span
+                    key={c.date}
+                    className={`hm-dia${c.futuro ? " futuro" : c.count >= 2 ? " n2" : c.count === 1 ? " n1" : ""}`}
+                    title={`${formatarData(c.date)}: ${c.count} treino(s)`}
+                  />
+                ))}
+              </div>
+            ))}
+          </div>
         </div>
         <div className="hm-legenda">
           <span className="hm-dia" /> 0 <span className="hm-dia n1" /> 1 <span className="hm-dia n2" /> 2+

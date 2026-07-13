@@ -174,7 +174,13 @@ textarea:focus{outline:2px solid var(--orange);border-color:var(--orange)}
 .evo-delta-neg{color:#ff8b6b!important}
 
 /* ---------- heatmap de frequência ---------- */
-.heatmap{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.heatmap{overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.hm-meses{display:flex;gap:3px;margin-bottom:4px}
+.hm-meses .hm-esp{width:16px;flex:0 0 auto}
+.hm-meses .hm-mes{width:14px;flex:0 0 auto;overflow:visible;white-space:nowrap;font-family:var(--head);text-transform:uppercase;font-size:.62rem;color:var(--muted);letter-spacing:.03em}
+.hm-grade{display:flex;gap:3px}
+.hm-rotulos{display:flex;flex-direction:column;gap:3px;flex:0 0 auto;width:16px}
+.hm-rotulos span{height:14px;line-height:14px;font-family:var(--head);font-size:.6rem;color:var(--muted);text-align:left}
 .hm-col{display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
 .hm-dia{width:14px;height:14px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);display:inline-block}
 .hm-dia.n1{background:var(--green);border-color:var(--green)}
