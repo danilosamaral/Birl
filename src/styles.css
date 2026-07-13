@@ -167,6 +167,24 @@ textarea:focus{outline:2px solid var(--orange);border-color:var(--orange)}
 .evo-delta-pos{color:var(--green-soft)!important}
 .evo-delta-neg{color:#ff8b6b!important}
 
+/* ---------- heatmap de frequência ---------- */
+.heatmap{display:flex;gap:3px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.hm-col{display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
+.hm-dia{width:14px;height:14px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);display:inline-block}
+.hm-dia.n1{background:var(--green);border-color:var(--green)}
+.hm-dia.n2{background:var(--orange);border-color:var(--orange)}
+.hm-dia.futuro{opacity:.25}
+.hm-legenda{display:flex;align-items:center;gap:6px;margin-top:8px;color:var(--muted);font-size:.74rem}
+
+/* ---------- timer de descanso ---------- */
+.timer-pill{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 68px);z-index:45;display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--orange);border-radius:99px;padding:10px 16px;box-shadow:0 6px 20px rgba(0,0,0,.45)}
+.timer-pill .rotulo{font-family:var(--head);text-transform:uppercase;letter-spacing:.04em;font-size:.7rem;color:var(--muted)}
+.timer-pill b{font-family:var(--head);font-size:1.15rem;color:var(--orange-soft);min-width:52px;text-align:center}
+.timer-pill button{background:transparent;border:1px solid var(--line);color:var(--text);border-radius:99px;padding:6px 10px;font-size:.74rem;cursor:pointer;min-height:32px;font-family:var(--head)}
+.timer-pill.fim{border-color:var(--green-soft);animation:pulso 1s ease infinite}
+.timer-pill.fim .rotulo{color:var(--green-soft)}
+@keyframes pulso{0%,100%{transform:translateX(-50%) scale(1)}50%{transform:translateX(-50%) scale(1.04)}}
+
 /* ---------- sync / ajustes ---------- */
 .sync-bar{display:flex;align-items:center;justify-content:space-between;gap:10px;background:var(--surface-2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;font-size:.8rem;margin-bottom:16px}
 .sync-bar .estado{color:var(--muted);display:flex;align-items:center;gap:7px;min-width:0}
@@ -178,7 +196,7 @@ textarea:focus{outline:2px solid var(--orange);border-color:var(--orange)}
 .divisao-grid select{background:var(--surface-2);color:var(--text);border:1px solid var(--line);border-radius:8px;padding:8px;min-height:42px;font-size:.92rem;width:100%}
 
 /* ---------- avisos / modal ---------- */
-.salvo-aviso{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 72px);transform:translateX(-50%) translateY(20px);background:var(--green);color:#fff;font-family:var(--head);text-transform:uppercase;letter-spacing:.04em;font-size:.78rem;padding:10px 18px;border-radius:99px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.4)}
+.salvo-aviso{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 124px);transform:translateX(-50%) translateY(20px);background:var(--green);color:#fff;font-family:var(--head);text-transform:uppercase;letter-spacing:.04em;font-size:.78rem;padding:10px 18px;border-radius:99px;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:50;box-shadow:0 6px 20px rgba(0,0,0,.4)}
 .salvo-aviso.mostra{opacity:1;transform:translateX(-50%) translateY(0)}
 .banner-info{background:rgba(240,169,59,.12);border:1px solid rgba(240,169,59,.4);color:var(--amber);border-radius:12px;padding:11px 14px;font-size:.84rem;margin-bottom:16px}
 .banner-ok{background:rgba(17,129,74,.12);border:1px solid rgba(26,161,90,.4);color:var(--green-soft);border-radius:12px;padding:11px 14px;font-size:.84rem;margin-bottom:16px}

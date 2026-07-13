@@ -1,6 +1,8 @@
 import { useStore } from "../store";
 import { useGlos, ListaGlossario } from "../glos";
 import { useDetalheEx } from "../detalhe";
+import { useTimer } from "../TimerDescanso";
+import { parseIntervalo } from "../analise";
 import { ROTULO_TIPO, ATRIBUTOS, regKey } from "../types";
 import type { RegistroSerie } from "../types";
 import { glosDaNota } from "../glossario";
@@ -181,6 +183,10 @@ export function Hoje() {
                 const marcar = (checked: boolean) => {
                   if (sugestao) st.setRegistroCompleto(chave, { ...sugestao, done: checked });
                   else st.setRegistro(chave, "done", checked);
+                  if (checked && st.prefs.timerDescanso !== false) {
+                    const segundos = parseIntervalo(s.int);
+                    if (segundos > 0) useTimer.getState().iniciar(segundos);
+                  }
                 };
                 const setsHint = s.presc.split("×")[0].trim();
                 const glosNota = glosDaNota(s.nota);

@@ -33,6 +33,19 @@ export function Ajustes() {
       </div>
 
       <div className="card">
+        <h3>Timer de descanso</h3>
+        <p className="card-sub">Ao marcar uma série como feita, inicia a contagem do intervalo prescrito.</p>
+        <label className="check" style={{ marginLeft: 0 }}>
+          <input
+            type="checkbox"
+            checked={st.prefs.timerDescanso !== false}
+            onChange={(e) => st.setTimerDescanso(e.target.checked)}
+          />{" "}
+          Iniciar automaticamente
+        </label>
+      </div>
+
+      <div className="card">
         <h3>Divisão da semana</h3>
         <p className="card-sub">
           A divisão agora pertence a cada <b>programa</b> de treino — configure na aba Treinos, em Programas → Editar. O
