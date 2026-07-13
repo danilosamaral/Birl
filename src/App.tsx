@@ -3,12 +3,15 @@ import { useStore, type Aba } from "./store";
 import { GlosModal } from "./glos";
 import { Hoje } from "./screens/Hoje";
 import { Treinos } from "./screens/Treinos";
+import { Biblioteca } from "./screens/Biblioteca";
 import { Evolucao } from "./screens/Evolucao";
 import { Ajustes } from "./screens/Ajustes";
+import { DetalheExercicioModal } from "./detalhe";
 
 const TABS: Array<{ id: Aba; rotulo: string; ic: string }> = [
   { id: "hoje", rotulo: "Hoje", ic: "🏋️" },
   { id: "treinos", rotulo: "Treinos", ic: "📋" },
+  { id: "biblioteca", rotulo: "Exercícios", ic: "📚" },
   { id: "evolucao", rotulo: "Evolução", ic: "📈" },
   { id: "ajustes", rotulo: "Ajustes", ic: "⚙️" },
 ];
@@ -40,10 +43,19 @@ export function App() {
         ? st.editandoTreinoId
           ? "Editar treino"
           : "Meus Treinos"
+        : st.tab === "biblioteca"
+          ? "Biblioteca"
+          : st.tab === "evolucao"
+            ? "Evolução"
+            : "Ajustes";
+  const subtitulo =
+    st.tab === "hoje"
+      ? (treinoAtivo?.foco ?? "")
+      : st.tab === "biblioteca"
+        ? "exercícios, execução e postura"
         : st.tab === "evolucao"
-          ? "Evolução"
-          : "Ajustes";
-  const subtitulo = st.tab === "hoje" ? (treinoAtivo?.foco ?? "") : st.tab === "evolucao" ? "progressão por treino" : "";
+          ? "progressão por treino"
+          : "";
 
   return (
     <>
@@ -59,6 +71,7 @@ export function App() {
       <main>
         {st.tab === "hoje" && <Hoje />}
         {st.tab === "treinos" && <Treinos />}
+        {st.tab === "biblioteca" && <Biblioteca />}
         {st.tab === "evolucao" && <Evolucao />}
         {st.tab === "ajustes" && <Ajustes />}
         <footer className="creditos">BIRL! — plataforma pessoal de treinos</footer>
@@ -77,6 +90,7 @@ export function App() {
 
       <AvisoSalvo />
       <GlosModal />
+      <DetalheExercicioModal />
     </>
   );
 }
