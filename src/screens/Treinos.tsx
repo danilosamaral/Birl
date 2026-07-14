@@ -2,12 +2,14 @@ import { useState } from "react";
 import { useStore } from "../store";
 import { EditorTreino } from "./EditorTreino";
 import { EditorPrograma } from "./EditorPrograma";
+import { CATALOGO } from "../catalogo";
 import { novoId, agora } from "../types";
 import type { Treino, Programa } from "../types";
 
 export function Treinos() {
   const st = useStore();
   const [editandoProgramaId, setEditandoProgramaId] = useState<string | null>(null);
+  const [catalogoAberto, setCatalogoAberto] = useState(false);
 
   if (st.editandoTreinoId) return <EditorTreino treinoId={st.editandoTreinoId} />;
   if (editandoProgramaId) return <EditorPrograma programaId={editandoProgramaId} aoVoltar={() => setEditandoProgramaId(null)} />;
@@ -93,7 +95,20 @@ export function Treinos() {
         <button className="btn btn-pri" type="button" onClick={criarPrograma}>
           + Novo programa
         </button>
+        <button className="btn btn-sec" type="button" onClick={() => setCatalogoAberto(true)}>
+          + Programa pronto
+        </button>
       </div>
+
+      {catalogoAberto && (
+        <CatalogoModal
+          onFechar={() => setCatalogoAberto(false)}
+          onEditar={(id) => {
+            setCatalogoAberto(false);
+            setEditandoProgramaId(id);
+          }}
+        />
+      )}
 
       <div className="card" style={{ paddingBottom: 10 }}>
         <h3>Meus treinos</h3>
@@ -136,5 +151,55 @@ export function Treinos() {
         </button>
       </div>
     </>
+  );
+}
+
+const DIAS_ABREV = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+function CatalogoModal({ onFechar, onEditar }: { onFechar(): void; onEditar(programaId: string): void }) {
+  const st = useStore();
+  const jaTem = new Set(
+    Object.values(st.programas)
+      .filter((p) => !p.deleted)
+      .map((p) => p.nome)
+  );
+
+  function adicionar(templateId: string) {
+    const id = st.adicionarProgramaDoCatalogo(templateId);
+    if (id) onEditar(id);
+  }
+
+  return (
+    <dialog open style={{ position: "fixed", top: "8vh", zIndex: 60, margin: "0 auto", left: 0, right: 0, maxHeight: "84vh", overflowY: "auto" }}>
+      <div className="modal-corpo">
+        <h3>Programas prontos</h3>
+        <p>Adicione um programa completo. Ele vira um programa seu, editável, sem alterar os demais.</p>
+        {CATALOGO.map((tpl) => {
+          const dias = [1, 2, 3, 4, 5, 6, 0]
+            .filter((d) => tpl.divisaoSemana[d] != null)
+            .map((d) => DIAS_ABREV[d])
+            .join(" · ");
+          return (
+            <div className="cat-item" key={tpl.id}>
+              <div className="cat-info">
+                <div className="cat-nome">{tpl.nome}</div>
+                <div className="cat-meta">{tpl.origem}</div>
+                <div className="cat-meta">
+                  {tpl.treinos.length} treinos · {dias}
+                </div>
+              </div>
+              <button className="btn-mini laranja" type="button" onClick={() => adicionar(tpl.id)}>
+                {jaTem.has(tpl.nome) ? "Adicionar +1" : "Adicionar"}
+              </button>
+            </div>
+          );
+        })}
+        <div className="acoes" style={{ marginTop: 12 }}>
+          <button className="btn btn-sec" type="button" onClick={onFechar}>
+            Fechar
+          </button>
+        </div>
+      </div>
+    </dialog>
   );
 }
