@@ -12,6 +12,8 @@ interface Props {
   texto?: string;
   min?: number;
   max?: number;
+  /** cor por ponto (ex.: por programa); tem prioridade sobre `ponto` */
+  coresPontos?: string[];
 }
 
 export function Grafico({
@@ -25,6 +27,7 @@ export function Grafico({
   texto = "#9a9a9e",
   min,
   max,
+  coresPontos,
 }: Props) {
   if (pts.length === 0) return null;
   const plotW = w - 2 * pad;
@@ -55,7 +58,7 @@ export function Grafico({
       {areaD && <path d={areaD} fill={area} />}
       <path d={d} fill="none" stroke={linha} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
       {pts.map((p, i) => (
-        <circle key={i} cx={X(i).toFixed(1)} cy={Y(p.v).toFixed(1)} r={3.5} fill={ponto} />
+        <circle key={i} cx={X(i).toFixed(1)} cy={Y(p.v).toFixed(1)} r={coresPontos ? 4.5 : 3.5} fill={coresPontos?.[i] ?? ponto} />
       ))}
       <text x={X(0).toFixed(1)} y={(Y(f.v) - 7).toFixed(1)} fill={texto} fontSize={11} textAnchor="middle">
         {f.v}

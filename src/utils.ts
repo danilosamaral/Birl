@@ -119,6 +119,30 @@ export function programasVisiveis(programas: Record<string, Programa>): Programa
     .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
 }
 
+/** Paleta qualitativa para diferenciar programas (calendário, volume, legenda). */
+export const CORES_PROGRAMA = ["#f15a22", "#1aa15a", "#3b82f6", "#a855f7", "#f0a93b", "#14b8a6", "#ec4899", "#84cc16"];
+export const COR_SEM_PROGRAMA = "#6b6b70";
+
+/** Mapa treinoId -> programaId (primeiro programa não-excluído que contém o treino). */
+export function mapaTreinoPrograma(programas: Record<string, Programa>): Record<string, string> {
+  const map: Record<string, string> = {};
+  for (const p of Object.values(programas)) {
+    if (p.deleted) continue;
+    for (const tid of p.treinoIds) if (!map[tid]) map[tid] = p.id;
+  }
+  return map;
+}
+
+/** Cor estável por programa: índice na lista de programas não-excluídos, ordenada por nome. */
+export function coresDosProgramas(programas: Record<string, Programa>): Record<string, string> {
+  const ordenados = Object.values(programas)
+    .filter((p) => !p.deleted)
+    .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  const out: Record<string, string> = {};
+  ordenados.forEach((p, i) => (out[p.id] = CORES_PROGRAMA[i % CORES_PROGRAMA.length]));
+  return out;
+}
+
 /** Treinos de um programa, na ordem do programa, ignorando excluídos/arquivados. */
 export function treinosDoPrograma(programa: Programa, treinos: Record<string, Treino>): Treino[] {
   return programa.treinoIds

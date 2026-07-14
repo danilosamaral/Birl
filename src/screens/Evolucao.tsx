@@ -4,26 +4,32 @@ import { Grafico } from "../chart";
 import { ATRIBUTOS, CAMPOS_MEDIDA } from "../types";
 import type { Treino } from "../types";
 import {
+  COR_SEM_PROGRAMA,
+  coresDosProgramas,
   dataHoje,
   duracaoMin,
   formatarData,
   formatarDataCurta,
   formatarDelta,
   formatarDuracao,
+  mapaTreinoPrograma,
   pontosAval,
   pontosCarga,
+  programasVisiveis,
   sessoesDoTreino,
-  treinosVisiveis,
+  treinosDoPrograma,
 } from "../utils";
 import {
   aderencia,
   gradeHeatmap,
+  inicioDaSemana,
   pontosE1RM,
   pontosVolume,
   prsDoExercicio,
   streakSemanas,
   volumeSemanal,
 } from "../analise";
+import type { Programa } from "../types";
 import { VisaoMedidas } from "./Medidas";
 
 type Metrica = "carga" | "volume" | "e1rm";
@@ -34,11 +40,21 @@ const ROTULO_METRICA: Record<Metrica, string> = { carga: "Carga (kg)", volume: "
 
 export function Evolucao() {
   const st = useStore();
-  const treinos = treinosVisiveis(st.treinos);
+  const programas = programasVisiveis(st.programas);
+  const [programaId, setProgramaId] = useState<string | null>(() => st.programaAtivo()?.id ?? programas[0]?.id ?? null);
   const [selecionadoId, setSelecionadoId] = useState<string>("geral");
   const [imprimindo, setImprimindo] = useState(false);
+
+  const programa = (programaId && st.programas[programaId]) || st.programaAtivo() || programas[0] || null;
+  const treinos = programa ? treinosDoPrograma(programa, st.treinos) : [];
   const especiais = selecionadoId === "geral" || selecionadoId === "medidas";
-  const treino = !especiais ? (st.treinos[selecionadoId] ?? treinos[0]) : null;
+  const treino = !especiais ? treinos.find((t) => t.id === selecionadoId) ?? null : null;
+
+  function trocarPrograma(id: string) {
+    setProgramaId(id);
+    // se um treino estava selecionado, volta pra Geral (o treino pode não existir no novo programa)
+    if (selecionadoId !== "geral" && selecionadoId !== "medidas") setSelecionadoId("geral");
+  }
 
   function imprimir() {
     setImprimindo(true);
@@ -50,6 +66,19 @@ export function Evolucao() {
 
   return (
     <>
+      {programas.length > 0 && (
+        <div className="prog-barra">
+          <label htmlFor="evo-programa">Programa</label>
+          <select id="evo-programa" value={programa?.id ?? ""} onChange={(e) => trocarPrograma(e.target.value)}>
+            {programas.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       <nav className="abas" aria-label="Selecionar visão">
         <button className="aba" type="button" aria-selected={selecionadoId === "geral"} onClick={() => setSelecionadoId("geral")}>
           Geral
@@ -74,7 +103,7 @@ export function Evolucao() {
         </div>
       )}
 
-      {imprimindo && <Relatorio />}
+      {imprimindo && <Relatorio programa={programa} />}
     </>
   );
 }
@@ -89,6 +118,41 @@ function VisaoGeral() {
     [st.sessoes]
   );
   const programa = st.programaAtivo();
+
+  // cores por programa (para mostrar as trocas de programa ao longo do tempo)
+  const cores = coresDosProgramas(st.programas);
+  const mapaTP = mapaTreinoPrograma(st.programas);
+  const corDaSessao = (treinoId: string) => cores[mapaTP[treinoId]] ?? COR_SEM_PROGRAMA;
+  const progDaSessao = (treinoId: string): string | null => mapaTP[treinoId] ?? null;
+
+  // programa dominante por dia (para o calendário)
+  const corPorDia = new Map<string, string>();
+  for (const s of todas) if (!corPorDia.has(s.data)) corPorDia.set(s.data, corDaSessao(s.treinoId));
+
+  // programa dominante por semana (para o volume semanal)
+  const contPorSemana = new Map<string, Map<string, number>>();
+  for (const s of todas) {
+    const sem = inicioDaSemana(s.data);
+    const cor = corDaSessao(s.treinoId);
+    if (!contPorSemana.has(sem)) contPorSemana.set(sem, new Map());
+    const m = contPorSemana.get(sem)!;
+    m.set(cor, (m.get(cor) ?? 0) + 1);
+  }
+  const corDominanteSemana = (sem: string): string => {
+    const m = contPorSemana.get(sem);
+    if (!m) return COR_SEM_PROGRAMA;
+    return [...m.entries()].sort((a, b) => b[1] - a[1])[0][0];
+  };
+
+  // legenda: programas (e "sem programa") que aparecem no histórico
+  const idsComSessao = new Set(todas.map((s) => progDaSessao(s.treinoId)));
+  const legenda: Array<{ cor: string; nome: string }> = [];
+  for (const p of Object.values(st.programas)) {
+    if (!p.deleted && idsComSessao.has(p.id)) legenda.push({ cor: cores[p.id], nome: p.nome });
+  }
+  legenda.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  if (idsComSessao.has(null)) legenda.push({ cor: COR_SEM_PROGRAMA, nome: "Sem programa" });
+
   const grade = gradeHeatmap(todas, hoje);
   // rótulo de mês na primeira coluna de cada mês; um mês parcial na borda
   // cede o lugar quando o rótulo seguinte ficaria colado (< 3 colunas)
@@ -150,29 +214,44 @@ function VisaoGeral() {
             </div>
             {grade.map((col, i) => (
               <div className="hm-col" key={i}>
-                {col.map((c) => (
-                  <span
-                    key={c.date}
-                    className={`hm-dia${c.futuro ? " futuro" : c.count >= 2 ? " n2" : c.count === 1 ? " n1" : ""}`}
-                    title={`${formatarData(c.date)}: ${c.count} treino(s)`}
-                  />
-                ))}
+                {col.map((c) => {
+                  const cor = !c.futuro && c.count >= 1 ? corPorDia.get(c.date) : undefined;
+                  return (
+                    <span
+                      key={c.date}
+                      className={`hm-dia${c.futuro ? " futuro" : ""}${c.count >= 2 ? " multi" : ""}`}
+                      style={cor ? { background: cor, borderColor: cor } : undefined}
+                      title={`${formatarData(c.date)}: ${c.count} treino(s)`}
+                    />
+                  );
+                })}
               </div>
             ))}
           </div>
         </div>
-        <div className="hm-legenda">
-          <span className="hm-dia" /> 0 <span className="hm-dia n1" /> 1 <span className="hm-dia n2" /> 2+
-        </div>
+        {legenda.length > 0 ? (
+          <div className="prog-legenda">
+            {legenda.map((l) => (
+              <span key={l.nome} className="prog-leg-item">
+                <i style={{ background: l.cor }} />
+                {l.nome}
+              </span>
+            ))}
+          </div>
+        ) : (
+          <div className="hm-legenda">
+            <span className="hm-dia" /> sem treino <span className="hm-dia" style={{ background: "#f15a22", borderColor: "#f15a22" }} /> treino
+          </div>
+        )}
       </div>
 
       {volSem.length > 0 && (
         <div className="evo-card">
           <div className="evo-nome">Volume semanal (todas as sessões)</div>
           <p className="card-sub" style={{ margin: "0 0 4px" }}>
-            Séries × reps × kg somados por semana (semana de {formatarDataCurta(volSem[0].date)} em diante).
+            Séries × reps × kg somados por semana (semana de {formatarDataCurta(volSem[0].date)} em diante). Cor = programa da semana.
           </p>
-          <Grafico pts={volSem} />
+          <Grafico pts={volSem} coresPontos={volSem.map((p) => corDominanteSemana(p.date))} />
         </div>
       )}
 
@@ -335,23 +414,24 @@ function CardsEvolucao({ treino, metrica }: { treino: Treino; metrica: Metrica }
 
 /* ---------- relatório para impressão ---------- */
 
-function Relatorio() {
+function Relatorio({ programa }: { programa: Programa | null }) {
   const st = useStore();
-  const treinos = treinosVisiveis(st.treinos);
+  const treinos = programa ? treinosDoPrograma(programa, st.treinos) : [];
   const hoje = dataHoje();
+  // apenas as sessões dos treinos deste programa
+  const idsPrograma = new Set(treinos.map((t) => t.id));
   const todas = Object.values(st.sessoes)
-    .filter((s) => !s.deleted)
+    .filter((s) => !s.deleted && idsPrograma.has(s.treinoId))
     .sort((a, b) => (a.data < b.data ? -1 : 1));
   const datas = [...new Set(todas.map((s) => s.data))].sort();
   const streak = streakSemanas(todas, hoje);
-  const programa = st.programaAtivo();
   const ader = programa ? aderencia(programa, todas, hoje) : null;
 
   return (
     <div id="relatorio">
       <h1>Relatório de Evolução — BIRL!</h1>
       <div className="meta">
-        Gerado em {formatarData(hoje)} · {todas.length} sessões registradas
+        Programa: {programa?.nome ?? "—"} · Gerado em {formatarData(hoje)} · {todas.length} sessões registradas
         {datas.length > 0 && ` · ${formatarData(datas[0])} a ${formatarData(datas[datas.length - 1])}`}
         {streak > 0 && ` · sequência de ${streak} semana(s)`}
         {ader && ` · aderência 4 semanas: ${ader.pct}%`}
