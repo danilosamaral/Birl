@@ -23,6 +23,18 @@ export function Treinos() {
     .filter((t) => !t.deleted)
     .sort((a, b) => Number(!!a.arquivado) - Number(!!b.arquivado) || a.ordem - b.ordem);
 
+  // agrupa os treinos por programa (evita o "Treino A" ambíguo entre programas)
+  const progsOrdenados = Object.values(st.programas)
+    .filter((p) => !p.deleted)
+    .sort((a, b) => Number(!!a.arquivado) - Number(!!b.arquivado) || a.nome.localeCompare(b.nome, "pt-BR"));
+  const emAlgumPrograma = new Set(progsOrdenados.flatMap((p) => p.treinoIds));
+  const grupos = progsOrdenados.map((p) => ({
+    titulo: p.nome + (p.arquivado ? " (arquivado)" : ""),
+    treinos: p.treinoIds.map((id) => st.treinos[id]).filter((t) => t && !t.deleted),
+  }));
+  const orfaos = todos.filter((t) => !emAlgumPrograma.has(t.id));
+  if (orfaos.length) grupos.push({ titulo: "Sem programa", treinos: orfaos });
+
   function criarPrograma() {
     const p: Programa = {
       id: novoId(),
@@ -112,37 +124,16 @@ export function Treinos() {
 
       <div className="card" style={{ paddingBottom: 10 }}>
         <h3>Meus treinos</h3>
-        <p className="card-sub">Todos os treinos, de qualquer programa.</p>
+        <p className="card-sub">Agrupados por programa — o "Treino A" de cada programa é independente.</p>
       </div>
       {todos.length === 0 && <div className="vazio">Nenhum treino ainda. Crie o primeiro!</div>}
-      {todos.map((t) => (
-        <div className={`treino-item${t.arquivado ? " arquivado" : ""}`} key={t.id}>
-          <div className="nome">{t.nome}</div>
-          {t.foco && <div className="foco">{t.foco}</div>}
-          <div className="meta-linha">
-            {t.exercicios.length} exercício(s)
-            {t.arquivado ? " · arquivado" : ""}
-          </div>
-          <div className="linha-acoes">
-            <button className="btn-mini laranja" type="button" onClick={() => st.setEditandoTreino(t.id)}>
-              Editar
-            </button>
-            <button className="btn-mini" type="button" onClick={() => st.duplicarTreino(t.id)}>
-              Duplicar
-            </button>
-            <button className="btn-mini" type="button" onClick={() => st.arquivarTreino(t.id, !t.arquivado)}>
-              {t.arquivado ? "Desarquivar" : "Arquivar"}
-            </button>
-            <button
-              className="btn-mini perigo"
-              type="button"
-              onClick={() => {
-                if (confirm(`Excluir "${t.nome}"? O histórico de sessões já registradas continua na Evolução.`)) st.excluirTreino(t.id);
-              }}
-            >
-              Excluir
-            </button>
-          </div>
+      {grupos.map((g) => (
+        <div key={g.titulo}>
+          <div className="grupo-programa">{g.titulo}</div>
+          {g.treinos.length === 0 && <div className="meta-linha" style={{ padding: "0 4px 10px" }}>Sem treinos.</div>}
+          {g.treinos.map((t) => (
+            <TreinoItem key={t.id} treino={t} />
+          ))}
         </div>
       ))}
       <div className="acoes">
@@ -151,6 +142,40 @@ export function Treinos() {
         </button>
       </div>
     </>
+  );
+}
+
+function TreinoItem({ treino: t }: { treino: Treino }) {
+  const st = useStore();
+  return (
+    <div className={`treino-item${t.arquivado ? " arquivado" : ""}`}>
+      <div className="nome">{t.nome}</div>
+      {t.foco && <div className="foco">{t.foco}</div>}
+      <div className="meta-linha">
+        {t.exercicios.length} exercício(s)
+        {t.arquivado ? " · arquivado" : ""}
+      </div>
+      <div className="linha-acoes">
+        <button className="btn-mini laranja" type="button" onClick={() => st.setEditandoTreino(t.id)}>
+          Editar
+        </button>
+        <button className="btn-mini" type="button" onClick={() => st.duplicarTreino(t.id)}>
+          Duplicar
+        </button>
+        <button className="btn-mini" type="button" onClick={() => st.arquivarTreino(t.id, !t.arquivado)}>
+          {t.arquivado ? "Desarquivar" : "Arquivar"}
+        </button>
+        <button
+          className="btn-mini perigo"
+          type="button"
+          onClick={() => {
+            if (confirm(`Excluir "${t.nome}"? O histórico de sessões já registradas continua na Evolução.`)) st.excluirTreino(t.id);
+          }}
+        >
+          Excluir
+        </button>
+      </div>
+    </div>
   );
 }
 

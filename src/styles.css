@@ -196,10 +196,12 @@ textarea:focus{outline:2px solid var(--orange);border-color:var(--orange)}
 .hm-rotulos span{height:14px;line-height:14px;font-family:var(--head);font-size:.6rem;color:var(--muted);text-align:left}
 .hm-col{display:flex;flex-direction:column;gap:3px;flex:0 0 auto}
 .hm-dia{width:14px;height:14px;border-radius:3px;background:var(--surface-2);border:1px solid var(--line);display:inline-block}
-.hm-dia.n1{background:var(--green);border-color:var(--green)}
-.hm-dia.n2{background:var(--orange);border-color:var(--orange)}
+.hm-dia.multi{box-shadow:inset 0 0 0 2px rgba(255,255,255,.55)}
 .hm-dia.futuro{opacity:.25}
 .hm-legenda{display:flex;align-items:center;gap:6px;margin-top:8px;color:var(--muted);font-size:.74rem}
+.prog-legenda{display:flex;flex-wrap:wrap;gap:6px 14px;margin-top:10px}
+.prog-leg-item{display:inline-flex;align-items:center;gap:6px;color:#d9d9dc;font-size:.78rem}
+.prog-leg-item i{width:12px;height:12px;border-radius:3px;flex:0 0 auto}
 
 /* ---------- timer de descanso ---------- */
 .timer-pill{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(env(safe-area-inset-bottom) + 68px);z-index:45;display:flex;align-items:center;gap:10px;background:var(--surface-2);border:1px solid var(--orange);border-radius:99px;padding:10px 16px;box-shadow:0 6px 20px rgba(0,0,0,.45)}
@@ -244,6 +246,7 @@ dialog::backdrop{background:rgba(0,0,0,.7)}
 .cat-info{flex:1;min-width:0}
 .cat-nome{font-family:var(--head);font-weight:600;font-size:1rem}
 .cat-meta{color:var(--muted);font-size:.78rem}
+.grupo-programa{font-family:var(--head);text-transform:uppercase;letter-spacing:.05em;font-size:.76rem;color:var(--orange-soft);margin:8px 2px 8px;padding-bottom:4px;border-bottom:1px solid var(--line)}
 
 /* ---------- biblioteca / detalhe de exercício ---------- */
 .chips{display:flex;gap:8px;flex-wrap:wrap;margin-top:4px}
