@@ -1,7 +1,7 @@
 import { useMemo, useState } from "react";
 import { useStore } from "../store";
 import { Grafico } from "../chart";
-import { ATRIBUTOS } from "../types";
+import { ATRIBUTOS, CAMPOS_MEDIDA } from "../types";
 import type { Treino } from "../types";
 import {
   dataHoje,
@@ -24,6 +24,7 @@ import {
   streakSemanas,
   volumeSemanal,
 } from "../analise";
+import { VisaoMedidas } from "./Medidas";
 
 type Metrica = "carga" | "volume" | "e1rm";
 
@@ -36,7 +37,8 @@ export function Evolucao() {
   const treinos = treinosVisiveis(st.treinos);
   const [selecionadoId, setSelecionadoId] = useState<string>("geral");
   const [imprimindo, setImprimindo] = useState(false);
-  const treino = selecionadoId !== "geral" ? (st.treinos[selecionadoId] ?? treinos[0]) : null;
+  const especiais = selecionadoId === "geral" || selecionadoId === "medidas";
+  const treino = !especiais ? (st.treinos[selecionadoId] ?? treinos[0]) : null;
 
   function imprimir() {
     setImprimindo(true);
@@ -52,6 +54,9 @@ export function Evolucao() {
         <button className="aba" type="button" aria-selected={selecionadoId === "geral"} onClick={() => setSelecionadoId("geral")}>
           Geral
         </button>
+        <button className="aba" type="button" aria-selected={selecionadoId === "medidas"} onClick={() => setSelecionadoId("medidas")}>
+          Medidas
+        </button>
         {treinos.map((t) => (
           <button key={t.id} className="aba" type="button" aria-selected={treino?.id === t.id} onClick={() => setSelecionadoId(t.id)}>
             {t.nome.replace(/^Treino /i, "")}
@@ -59,13 +64,15 @@ export function Evolucao() {
         ))}
       </nav>
 
-      {treino ? <VisaoTreino treino={treino} /> : <VisaoGeral />}
+      {selecionadoId === "medidas" ? <VisaoMedidas /> : treino ? <VisaoTreino treino={treino} /> : <VisaoGeral />}
 
-      <div className="acoes" style={{ marginTop: 4 }}>
-        <button className="btn btn-pri" type="button" onClick={imprimir}>
-          Gerar relatório (PDF)
-        </button>
-      </div>
+      {selecionadoId !== "medidas" && (
+        <div className="acoes" style={{ marginTop: 4 }}>
+          <button className="btn btn-pri" type="button" onClick={imprimir}>
+            Gerar relatório (PDF)
+          </button>
+        </div>
+      )}
 
       {imprimindo && <Relatorio />}
     </>
@@ -401,7 +408,36 @@ function Relatorio() {
           </div>
         );
       })}
+      <RelatorioMedidas />
       {datas.length === 0 && <p>Ainda não há dados registrados para gerar o relatório.</p>}
+    </div>
+  );
+}
+
+function RelatorioMedidas() {
+  const st = useStore();
+  const lista = Object.values(st.medidas)
+    .filter((m) => !m.deleted)
+    .sort((a, b) => (a.data < b.data ? -1 : 1));
+  if (lista.length === 0) return null;
+  const linhas = CAMPOS_MEDIDA.map(({ chave, rotulo, unidade }) => {
+    const pts = lista.filter((m) => m.valores[chave] != null);
+    if (pts.length === 0) return null;
+    const primeiro = pts[0].valores[chave];
+    const fim = pts[pts.length - 1].valores[chave];
+    const delta = fim - primeiro;
+    return `${rotulo}: ${fim} ${unidade}${pts.length > 1 ? ` (${formatarDelta(delta)} ${unidade})` : ""}`;
+  }).filter(Boolean);
+  if (linhas.length === 0) return null;
+  return (
+    <div>
+      <h2>Medidas corporais</h2>
+      <div className="rel-ex">
+        <div className="s">
+          {lista.length} registro(s) · {formatarData(lista[0].data)} a {formatarData(lista[lista.length - 1].data)}
+        </div>
+        <div className="s">{linhas.join(" · ")}</div>
+      </div>
     </div>
   );
 }

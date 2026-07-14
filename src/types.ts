@@ -99,6 +99,37 @@ export interface Prefs {
   deleted?: boolean;
 }
 
+/** Peso corporal (kg) e circunferências (cm) numa data. */
+export interface Medida {
+  /** id = a própria data (YYYY-MM-DD): uma medição por dia */
+  id: string;
+  data: string;
+  /** peso em kg e circunferências em cm; chaves de CAMPOS_MEDIDA */
+  valores: Record<string, number>;
+  obs?: string;
+  updated_at: string;
+  deleted?: boolean;
+}
+
+/** Campos de medida, na ordem de exibição. peso em kg, o resto em cm. */
+export const CAMPOS_MEDIDA: Array<{ chave: string; rotulo: string; unidade: string }> = [
+  { chave: "peso", rotulo: "Peso", unidade: "kg" },
+  { chave: "gordura", rotulo: "% Gordura", unidade: "%" },
+  { chave: "pescoco", rotulo: "Pescoço", unidade: "cm" },
+  { chave: "ombro", rotulo: "Ombros", unidade: "cm" },
+  { chave: "peito", rotulo: "Peito", unidade: "cm" },
+  { chave: "cintura", rotulo: "Cintura", unidade: "cm" },
+  { chave: "quadril", rotulo: "Quadril", unidade: "cm" },
+  { chave: "braco_d", rotulo: "Braço dir.", unidade: "cm" },
+  { chave: "braco_e", rotulo: "Braço esq.", unidade: "cm" },
+  { chave: "antebraco_d", rotulo: "Antebraço dir.", unidade: "cm" },
+  { chave: "antebraco_e", rotulo: "Antebraço esq.", unidade: "cm" },
+  { chave: "coxa_d", rotulo: "Coxa dir.", unidade: "cm" },
+  { chave: "coxa_e", rotulo: "Coxa esq.", unidade: "cm" },
+  { chave: "panturrilha_d", rotulo: "Panturrilha dir.", unidade: "cm" },
+  { chave: "panturrilha_e", rotulo: "Panturrilha esq.", unidade: "cm" },
+];
+
 export const ROTULO_TIPO: Record<TipoSerie, string> = {
   aquecimento: "Aquecimento",
   ajuste: "Ajuste",

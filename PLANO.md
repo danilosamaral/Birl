@@ -145,13 +145,18 @@ Cada fase termina com deploy funcional e dados preservados.
   schema `birl_*`, migração automática do histórico, telas Meus Treinos e
   editor, registro apontando para treinos do usuário, última carga no
   registro. → **A partir daqui você já monta seus próprios treinos.**
-- **Fase 2 — Biblioteca de exercícios**: base pública com imagens,
-  busca/filtros, detalhe com instruções, upload próprio (Storage) e links
+- **Fase 2 — Biblioteca de exercícios** ✅: base pública com imagens,
+  busca/filtros, detalhe com instruções, upload próprio e links
   de vídeo, glossário integrado.
-- **Fase 3 — Evolução completa**: volume, PRs, e1RM, calendário/heatmap,
+- **Fase 3 — Evolução completa** ✅: volume, PRs, e1RM, calendário/heatmap,
   streak, aderência, timer de descanso, relatório expandido.
-- **Fase 4 — Medidas corporais**: peso + medidas com gráficos, entrada
-  rápida, integração no relatório.
+- **Fase 4 — Medidas corporais** ✅: peso + circunferências com gráficos,
+  entrada rápida por data, integração no relatório.
+
+**Extras entregues além do plano**: programas de treino com divisão da
+semana própria, pré-carga dos números da última sessão, barra de progresso
+fixa no cabeçalho, iniciar/encerrar treino com duração, e rótulos de dia/mês
+no calendário.
 
 ## 8. Pontos de atenção
 

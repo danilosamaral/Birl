@@ -4,7 +4,7 @@ import { gerarSeeds } from "./seeds";
 import { gerarBiblioteca, gerarEnriquecimentoSeeds, SEED_EPOCH_V2 } from "./biblioteca";
 import { migrarLocal, migrarRemoto } from "./migracao";
 import { enfileirar, setLogado, sincronizarTudo, supa, type Tabela } from "./sync";
-import type { Exercicio, Prefs, Programa, RegistroSerie, Sessao, Treino, Aval } from "./types";
+import type { Exercicio, Medida, Prefs, Programa, RegistroSerie, Sessao, Treino, Aval } from "./types";
 import { agora, novoId, sessaoId } from "./types";
 import { dataHoje, diaDaSemana, treinosDoPrograma, treinosVisiveis } from "./utils";
 
@@ -33,6 +33,7 @@ interface Estado {
   treinos: Record<string, Treino>;
   sessoes: Record<string, Sessao>;
   programas: Record<string, Programa>;
+  medidas: Record<string, Medida>;
   prefs: Prefs;
 
   init(): Promise<void>;
@@ -55,6 +56,9 @@ interface Estado {
   duplicarPrograma(id: string): void;
   arquivarPrograma(id: string, arquivado: boolean): void;
   excluirPrograma(id: string): void;
+
+  salvarMedida(m: Medida): void;
+  excluirMedida(id: string): void;
 
   sessaoAtiva(): Sessao;
   setRegistro(chave: string, campo: keyof RegistroSerie, valor: string | boolean): void;
@@ -116,6 +120,7 @@ export const useStore = create<Estado>((set, get) => {
     treinos: {},
     sessoes: {},
     programas: {},
+    medidas: {},
     prefs: PREFS_PADRAO(),
 
     async init() {
@@ -187,11 +192,12 @@ export const useStore = create<Estado>((set, get) => {
     },
 
     async recarregar() {
-      const [exs, trs, sss, prgs, prefs] = await Promise.all([
+      const [exs, trs, sss, prgs, meds, prefs] = await Promise.all([
         db.exercicios.toArray(),
         db.treinos.toArray(),
         db.sessoes.toArray(),
         db.programas.toArray(),
+        db.medidas.toArray(),
         db.prefs.get("prefs"),
       ]);
       set({
@@ -199,6 +205,7 @@ export const useStore = create<Estado>((set, get) => {
         treinos: Object.fromEntries(trs.map((t) => [t.id, t])),
         sessoes: Object.fromEntries(sss.filter((s) => !s.deleted).map((s) => [s.id, s])),
         programas: Object.fromEntries(prgs.map((p) => [p.id, p])),
+        medidas: Object.fromEntries(meds.filter((m) => !m.deleted).map((m) => [m.id, m])),
         prefs: prefs ?? PREFS_PADRAO(),
       });
     },
@@ -260,6 +267,23 @@ export const useStore = create<Estado>((set, get) => {
       const atualizado = { ...e, updated_at: agora() };
       set({ exercicios: { ...get().exercicios, [e.id]: atualizado } });
       persistir("exercicios", atualizado);
+    },
+
+    salvarMedida(m) {
+      const atualizado = { ...m, updated_at: agora() };
+      set({ medidas: { ...get().medidas, [m.id]: atualizado } });
+      persistir("medidas", atualizado);
+    },
+    excluirMedida(id) {
+      const m = get().medidas[id];
+      if (!m) return;
+      const morto = { ...m, deleted: true, updated_at: agora() };
+      const medidas = { ...get().medidas };
+      delete medidas[id];
+      set({ medidas });
+      void db.medidas.put(morto);
+      enfileirar("medidas", id);
+      set({ avisoSalvo: get().avisoSalvo + 1 });
     },
 
     setTimerDescanso(ligado) {
@@ -374,8 +398,8 @@ export const useStore = create<Estado>((set, get) => {
     },
 
     exportarBackup() {
-      const { exercicios, treinos, sessoes, programas, prefs } = get();
-      return JSON.stringify({ versao: 2, exercicios, treinos, sessoes, programas, prefs }, null, 2);
+      const { exercicios, treinos, sessoes, programas, medidas, prefs } = get();
+      return JSON.stringify({ versao: 2, exercicios, treinos, sessoes, programas, medidas, prefs }, null, 2);
     },
     async importarBackup(json) {
       const b = JSON.parse(json) as {
@@ -384,6 +408,7 @@ export const useStore = create<Estado>((set, get) => {
         treinos: Record<string, Treino>;
         sessoes: Record<string, Sessao>;
         programas?: Record<string, Programa>;
+        medidas?: Record<string, Medida>;
         prefs?: Prefs;
       };
       if (b.versao !== 2 || typeof b.treinos !== "object" || typeof b.sessoes !== "object") {
@@ -393,11 +418,13 @@ export const useStore = create<Estado>((set, get) => {
       await db.treinos.bulkPut(Object.values(b.treinos ?? {}));
       await db.sessoes.bulkPut(Object.values(b.sessoes ?? {}));
       await db.programas.bulkPut(Object.values(b.programas ?? {}));
+      await db.medidas.bulkPut(Object.values(b.medidas ?? {}));
       if (b.prefs) await db.prefs.put(b.prefs);
       for (const e of Object.values(b.exercicios ?? {})) enfileirar("exercicios", e.id);
       for (const t of Object.values(b.treinos ?? {})) enfileirar("treinos", t.id);
       for (const s of Object.values(b.sessoes ?? {})) enfileirar("sessoes", s.id);
       for (const p of Object.values(b.programas ?? {})) enfileirar("programas", p.id);
+      for (const m of Object.values(b.medidas ?? {})) enfileirar("medidas", m.id);
       await get().recarregar();
     },
 
