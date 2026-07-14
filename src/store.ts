@@ -2,6 +2,9 @@ import { create } from "zustand";
 import { db, getMeta, setMeta } from "./db";
 import { gerarSeeds } from "./seeds";
 import { gerarBiblioteca, gerarEnriquecimentoSeeds, SEED_EPOCH_V2 } from "./biblioteca";
+import { CATALOGO, exercicioNovoDoCatalogo } from "./catalogo";
+import { seedExercicioId } from "./seeds";
+import type { TreinoExercicio } from "./types";
 import { migrarLocal, migrarRemoto } from "./migracao";
 import { enfileirar, setLogado, sincronizarTudo, supa, type Tabela } from "./sync";
 import type { Exercicio, Medida, Prefs, Programa, RegistroSerie, Sessao, Treino, Aval } from "./types";
@@ -56,6 +59,8 @@ interface Estado {
   duplicarPrograma(id: string): void;
   arquivarPrograma(id: string, arquivado: boolean): void;
   excluirPrograma(id: string): void;
+  /** Instancia um programa do catálogo; retorna o id criado (ou null). */
+  adicionarProgramaDoCatalogo(templateId: string): string | null;
 
   salvarMedida(m: Medida): void;
   excluirMedida(id: string): void;
@@ -340,6 +345,66 @@ export const useStore = create<Estado>((set, get) => {
       set({ programas: { ...get().programas, [id]: morto } });
       persistir("programas", morto);
       if (get().prefs.programaAtivoId === id) get().setProgramaAtivo(null);
+    },
+    adicionarProgramaDoCatalogo(templateId) {
+      const tpl = CATALOGO.find((t) => t.id === templateId);
+      if (!tpl) return null;
+      const exAtuais = { ...get().exercicios };
+      const novosEx: Exercicio[] = [];
+      // treinos com UUIDs novos; a divisão referencia os treinos por índice
+      const idsPorIndice: string[] = tpl.treinos.map(() => novoId());
+      const ordemBase = Math.max(...Object.values(get().treinos).map((t) => t.ordem), -1) + 1;
+      const treinos: Treino[] = tpl.treinos.map((ct, ti) => {
+        const exercicios: TreinoExercicio[] = ct.exercicios.map((ce) => {
+          const exId = seedExercicioId(ce.nome);
+          // reaproveita exercício existente (histórico unificado) ou cria o que falta
+          if (!exAtuais[exId] && !novosEx.some((e) => e.id === exId)) {
+            novosEx.push(exercicioNovoDoCatalogo(ce));
+          }
+          return {
+            id: novoId(),
+            exercicioId: exId,
+            series: ce.series.map((s) => ({ ...s })),
+            ...(ce.aviso ? { aviso: ce.aviso } : {}),
+          };
+        });
+        return {
+          id: idsPorIndice[ti],
+          nome: ct.nome,
+          foco: ct.foco,
+          ordem: ordemBase + ti,
+          exercicios,
+          updated_at: agora(),
+        };
+      });
+      const divisaoSemana: Record<number, string | null> = {};
+      for (const [dia, idx] of Object.entries(tpl.divisaoSemana)) {
+        divisaoSemana[Number(dia)] = idx == null ? null : idsPorIndice[idx];
+      }
+      const programa: Programa = {
+        id: novoId(),
+        nome: tpl.nome,
+        descricao: tpl.descricao,
+        treinoIds: idsPorIndice,
+        divisaoSemana,
+        updated_at: agora(),
+      };
+      // grava exercícios novos, treinos e o programa
+      const exState = { ...get().exercicios };
+      for (const e of novosEx) {
+        exState[e.id] = e;
+        void db.exercicios.put(e);
+        enfileirar("exercicios", e.id);
+      }
+      const trState = { ...get().treinos };
+      for (const t of treinos) {
+        trState[t.id] = t;
+        void db.treinos.put(t);
+        enfileirar("treinos", t.id);
+      }
+      set({ exercicios: exState, treinos: trState, programas: { ...get().programas, [programa.id]: programa } });
+      persistir("programas", programa);
+      return programa.id;
     },
 
     sessaoAtiva() {
