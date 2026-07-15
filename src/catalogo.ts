@@ -44,7 +44,46 @@ export function imagensCat(libId: string): string[] {
   return [`${MIDIA_CDN}${libId}/0.jpg`, `${MIDIA_CDN}${libId}/1.jpg`];
 }
 
+// exercício "limpo" (3 × 10 a 15, sem técnica) do programa iniciante
+const TRi = (): SeriePlano[] => [TR("3 × 10 a 15", "1 min")];
+
 export const CATALOGO: CatalogoPrograma[] = [
+  {
+    id: "cat_4x_iniciantes",
+    nome: "Treino 4x na Semana (Iniciantes)",
+    descricao: "Além da Genética 2.0 — divisão A/B repetida (Seg A · Ter B · Qui A · Sex B), 3×10-15.",
+    origem: "Além da Genética 2.0",
+    divisaoSemana: { 1: 0, 2: 1, 3: null, 4: 0, 5: 1, 6: null, 0: null },
+    treinos: [
+      {
+        nome: "Treino A",
+        foco: "Peito · Costas · Ombro · Braços",
+        exercicios: [
+          { nome: "Supino inclinado com halteres ou máquina", grupo: "Peito", series: TRi() },
+          { nome: "Supino reto com halteres ou máquina", grupo: "Peito", series: TRi() },
+          { nome: "Pulley frente aberto", grupo: "Costas", libId: "Wide-Grip_Lat_Pulldown", series: TRi() },
+          { nome: "Remada baixa triângulo", grupo: "Costas", libId: "Seated_Cable_Rows", series: TRi() },
+          { nome: "Desenvolvimento halteres ou máquina", grupo: "Ombro", series: TRi() },
+          { nome: "Elevação lateral", grupo: "Ombro", series: TRi() },
+          { nome: "Tríceps na corda", grupo: "Tríceps", series: TRi() },
+          { nome: "Rosca direta barra livre ou cabo com barra", grupo: "Bíceps", series: TRi() },
+        ],
+      },
+      {
+        nome: "Treino B",
+        foco: "Pernas · Glúteos · Abdômen",
+        exercicios: [
+          { nome: "Leg 45", grupo: "Quadríceps", series: TRi() },
+          { nome: "Cadeira extensora", grupo: "Quadríceps", series: TRi() },
+          { nome: "Flexor sentado", grupo: "Posterior", libId: "Seated_Leg_Curl", series: TRi() },
+          { nome: "Flexor deitado", grupo: "Posterior", libId: "Lying_Leg_Curls", series: TRi() },
+          { nome: "Abdutor", grupo: "Glúteos", libId: "Thigh_Abductor", series: TRi() },
+          { nome: "Panturrilha na máquina ou em pé no smith", grupo: "Panturrilha", series: TRi() },
+          { nome: "Abdominal supra no solo", grupo: "Abdômen", libId: "Crunches", series: TRi() },
+        ],
+      },
+    ],
+  },
   {
     id: "cat_5x",
     nome: "Treino 5x na Semana",
