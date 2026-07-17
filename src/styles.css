@@ -31,8 +31,10 @@ nav.abas{display:flex;gap:8px;padding:12px 16px;overflow-x:auto;background:var(-
 .aba:focus-visible{outline:3px solid var(--orange-soft);outline-offset:2px}
 
 /* ---------- tab bar inferior ---------- */
-nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:rgba(18,18,19,.96);
-  backdrop-filter:blur(8px);border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
+/* fundo opaco (sem backdrop-filter): no Safari iOS, backdrop-filter num
+   elemento position:fixed quebra a fixação e a barra rola junto com a página */
+nav.tabbar{position:fixed;left:0;right:0;bottom:0;z-index:30;display:flex;background:#131315;
+  border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom)}
 .tabbar button{flex:1;min-height:56px;background:transparent;border:none;color:var(--muted);cursor:pointer;
   font-family:var(--head);font-weight:600;text-transform:uppercase;letter-spacing:.03em;font-size:.66rem;
   display:flex;flex-direction:column;align-items:center;gap:3px;padding:8px 2px 6px}
