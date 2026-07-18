@@ -6,7 +6,7 @@ import { CATALOGO, exercicioNovoDoCatalogo } from "./catalogo";
 import { seedExercicioId } from "./seeds";
 import type { TreinoExercicio } from "./types";
 import { migrarLocal, migrarRemoto } from "./migracao";
-import { enfileirar, setLogado, sincronizarTudo, supa, type Tabela } from "./sync";
+import { enfileirar, setLogado, sincronizarTudo, supa, usuarioAtual, type Tabela } from "./sync";
 import type { Exercicio, Medida, Prefs, Programa, RegistroSerie, Sessao, Treino, Aval } from "./types";
 import { agora, novoId, sessaoId } from "./types";
 import { dataHoje, diaDaSemana, treinosDoPrograma, treinosVisiveis } from "./utils";
@@ -29,6 +29,8 @@ interface Estado {
   treinoAtivoId: string | null;
   usuario: { id: string; email?: string } | null;
   sincronizando: boolean;
+  ultimoSync: number | null;
+  syncResumo: string | null;
   avisoSalvo: number;
   migradas: number;
 
@@ -78,6 +80,7 @@ interface Estado {
   exportarBackup(): string;
   importarBackup(json: string): Promise<void>;
   aoLogar(): Promise<void>;
+  sincronizarAgora(manual?: boolean): Promise<void>;
 }
 
 function sessaoVazia(data: string, treinoId: string): Sessao {
@@ -119,6 +122,8 @@ export const useStore = create<Estado>((set, get) => {
     treinoAtivoId: null,
     usuario: null,
     sincronizando: false,
+    ultimoSync: null,
+    syncResumo: null,
     avisoSalvo: 0,
     migradas: 0,
     exercicios: {},
@@ -164,7 +169,9 @@ export const useStore = create<Estado>((set, get) => {
               descricao: "Programa original da ficha A/B/C/D.",
               treinoIds: ["sd_A", "sd_B", "sd_C", "sd_D"],
               divisaoSemana: { ...prefsRow.divisaoSemana },
-              updated_at: agora(),
+              // data fixa e antiga: um aparelho recém-instalado nunca sobrescreve
+              // por LWW as edições deste programa feitas em outro aparelho
+              updated_at: "2026-01-01T00:00:00.000Z",
             })
             .catch(() => {});
           await db.prefs.put({ ...prefsRow, programaAtivoId: PROGRAMA_INICIAL_ID, updated_at: agora() });
@@ -193,6 +200,19 @@ export const useStore = create<Estado>((set, get) => {
           setLogado(!!u);
           if (u && u.id !== antes) void get().aoLogar();
         });
+
+        // re-sincroniza ao reabrir/focar o app e ao voltar a rede, para pegar o
+        // que foi alterado em outro aparelho (a sync completa não rodava mais
+        // depois do login inicial). Throttle simples de 15s.
+        const resyncSeAntigo = () => {
+          if (document.visibilityState === "hidden") return;
+          const ult = get().ultimoSync ?? 0;
+          if (Date.now() - ult > 15000) void get().sincronizarAgora();
+        };
+        document.addEventListener("visibilitychange", resyncSeAntigo);
+        window.addEventListener("focus", resyncSeAntigo);
+        window.addEventListener("online", () => void get().sincronizarAgora());
+        setInterval(resyncSeAntigo, 90000);
       }
     },
 
@@ -494,15 +514,38 @@ export const useStore = create<Estado>((set, get) => {
     },
 
     async aoLogar() {
-      set({ sincronizando: true });
+      // migração única do histórico antigo (adg_registros) + primeira sincronização
+      const jaMigrouRemoto = await getMeta<boolean>(`migracao_remota_${get().usuario?.id}`);
+      if (!jaMigrouRemoto) {
+        await migrarRemoto();
+        await setMeta(`migracao_remota_${get().usuario?.id}`, true);
+      }
+      await get().sincronizarAgora();
+    },
+
+    async sincronizarAgora(manual = false) {
+      if (get().sincronizando) return;
+      const user = await usuarioAtual();
+      if (!user) {
+        if (manual) set({ syncResumo: "Entre com uma conta para sincronizar." });
+        return;
+      }
+      set({ sincronizando: true, ...(manual ? { syncResumo: null } : {}) });
       try {
-        await sincronizarTudo();
-        const jaMigrouRemoto = await getMeta<boolean>(`migracao_remota_${get().usuario?.id}`);
-        if (!jaMigrouRemoto) {
-          await migrarRemoto();
-          await setMeta(`migracao_remota_${get().usuario?.id}`, true);
-        }
+        const r = await sincronizarTudo();
         await get().recarregar();
+        if (r.ok) {
+          set({
+            ultimoSync: Date.now(),
+            syncResumo: manual
+              ? r.baixados || r.enviados
+                ? `Sincronizado: ${r.baixados} baixado(s), ${r.enviados} enviado(s).`
+                : "Tudo já estava sincronizado."
+              : get().syncResumo,
+          });
+        } else if (manual) {
+          set({ syncResumo: `Falha ao sincronizar: ${r.erro ?? "sem conexão"}.` });
+        }
       } finally {
         set({ sincronizando: false });
       }
