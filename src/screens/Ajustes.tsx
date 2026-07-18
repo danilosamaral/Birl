@@ -23,7 +23,7 @@ export function Ajustes() {
             {st.sincronizando
               ? "Sincronizando..."
               : st.usuario
-                ? `Sincronizado: ${st.usuario.email ?? ""}`
+                ? `Conta: ${st.usuario.email ?? ""}`
                 : "Salvo só neste aparelho"}
           </span>
         </span>
@@ -31,6 +31,32 @@ export function Ajustes() {
           {st.usuario ? "Sair" : "Entrar para sincronizar"}
         </button>
       </div>
+
+      {st.usuario && (
+        <div className="card">
+          <h3>Sincronização</h3>
+          <p className="card-sub">
+            Use a <b>mesma conta</b> em todos os aparelhos para ver os mesmos treinos, histórico e evolução. O app
+            sincroniza sozinho ao abrir; use o botão para forçar agora.
+          </p>
+          <div className="acoes">
+            <button className="btn btn-pri" type="button" onClick={() => st.sincronizarAgora(true)} disabled={st.sincronizando}>
+              {st.sincronizando ? "Sincronizando..." : "Sincronizar agora"}
+            </button>
+          </div>
+          <p className="card-sub" style={{ margin: "10px 0 0" }}>
+            {st.ultimoSync ? `Última sincronização: ${new Date(st.ultimoSync).toLocaleString("pt-BR")}` : "Ainda não sincronizado nesta sessão."}
+          </p>
+          {st.syncResumo && <p className="msg-aviso" style={{ color: "var(--green-soft)" }}>{st.syncResumo}</p>}
+        </div>
+      )}
+
+      {!st.usuario && (
+        <div className="banner-info">
+          Você não está sincronizando. Para ver os mesmos dados no celular e no iPad, entre com uma conta (o mesmo e-mail
+          e senha) em cada aparelho.
+        </div>
+      )}
 
       <div className="card">
         <h3>Timer de descanso</h3>

@@ -105,6 +105,12 @@ export function Hoje() {
         </div>
       )}
 
+      {!st.usuario && (
+        <button className="banner-info" style={{ width: "100%", textAlign: "left", cursor: "pointer" }} type="button" onClick={() => st.setTab("ajustes")}>
+          ☁️ Você não está sincronizando — os dados ficam só neste aparelho. Toque para entrar e ver os mesmos treinos no celular e no iPad.
+        </button>
+      )}
+
       <details className="painel">
         <summary>
           Recomendações e glossário <span className="seta">›</span>

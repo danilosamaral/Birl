@@ -62,41 +62,47 @@ async function descarregarFila() {
   }
 }
 
-async function subir(tabela: Tabela, id: string) {
+async function subir(tabela: Tabela, id: string): Promise<boolean> {
   const c = supa();
   const user = await usuarioAtual();
-  if (!c || !user) return;
+  if (!c || !user) return false;
   const ent = (await db[tabela].get(id)) as Entidade | undefined;
-  if (!ent) return;
-  try {
-    await c.from(TABELA_REMOTA[tabela]).upsert(
-      {
-        user_id: user.id,
-        id: ent.id,
-        payload: ent,
-        updated_at: ent.updated_at,
-        deleted: !!ent.deleted,
-      },
-      { onConflict: "user_id,id" }
-    );
-  } catch {
-    // sem rede: os dados continuam locais; a próxima mudança re-tenta
-  }
+  if (!ent) return false;
+  const { error } = await c.from(TABELA_REMOTA[tabela]).upsert(
+    {
+      user_id: user.id,
+      id: ent.id,
+      payload: ent,
+      updated_at: ent.updated_at,
+      deleted: !!ent.deleted,
+    },
+    { onConflict: "user_id,id" }
+  );
+  return !error;
 }
 
 /* ---------- sincronização completa (pull + push, LWW) ---------- */
 
-export async function sincronizarTudo(): Promise<boolean> {
+export interface ResultadoSync {
+  ok: boolean;
+  baixados: number;
+  enviados: number;
+  erro?: string;
+}
+
+export async function sincronizarTudo(): Promise<ResultadoSync> {
   const c = supa();
   const user = await usuarioAtual();
-  if (!c || !user) return false;
-  let ok = true;
+  if (!c || !user) return { ok: false, baixados: 0, enviados: 0, erro: "Não autenticado" };
+  let baixados = 0;
+  let enviados = 0;
+  let erro: string | undefined;
   for (const tabela of Object.keys(TABELA_REMOTA) as Tabela[]) {
     try {
       const { data, error } = await c
         .from(TABELA_REMOTA[tabela])
         .select("id,payload,updated_at,deleted");
-      if (error) throw error;
+      if (error) throw new Error(error.message);
       const remoto = new Map<string, { payload: Entidade; updated_at: string }>();
       (data ?? []).forEach((r) =>
         remoto.set(r.id, {
@@ -119,13 +125,16 @@ export async function sincronizarTudo(): Promise<boolean> {
       for (const loc of locais) {
         if (!remoto.has(loc.id)) paraSubir.push(loc.id);
       }
-      if (paraSalvar.length) await (db[tabela] as never as { bulkPut(a: Entidade[]): Promise<unknown> }).bulkPut(paraSalvar);
-      for (const id of paraSubir) await subir(tabela, id);
-    } catch {
-      ok = false;
+      if (paraSalvar.length) {
+        await (db[tabela] as never as { bulkPut(a: Entidade[]): Promise<unknown> }).bulkPut(paraSalvar);
+        baixados += paraSalvar.length;
+      }
+      for (const id of paraSubir) if (await subir(tabela, id)) enviados++;
+    } catch (e) {
+      erro = erro ?? (e instanceof Error ? e.message : String(e));
     }
   }
-  return ok;
+  return { ok: !erro, baixados, enviados, erro };
 }
 
 export function traduzErro(m: string): string {
