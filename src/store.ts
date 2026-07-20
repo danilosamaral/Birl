@@ -1,12 +1,12 @@
 import { create } from "zustand";
-import { db, getMeta, setMeta } from "./db";
+import { abrirBanco, adotarBancoLegado, db, fecharBanco, getMeta, setMeta, usuarioDonoDoLegado } from "./db";
 import { gerarSeeds } from "./seeds";
 import { gerarBiblioteca, gerarEnriquecimentoSeeds, SEED_EPOCH_V2 } from "./biblioteca";
 import { CATALOGO, exercicioNovoDoCatalogo } from "./catalogo";
 import { seedExercicioId } from "./seeds";
 import type { TreinoExercicio } from "./types";
 import { migrarLocal, migrarRemoto } from "./migracao";
-import { enfileirar, setLogado, sincronizarTudo, supa, usuarioAtual, type Tabela } from "./sync";
+import { enfileirar, limparFila, setLogado, sincronizarTudo, supa, traduzErro, usuarioAtual, type Tabela } from "./sync";
 import type { Exercicio, Medida, Prefs, Programa, RegistroSerie, Sessao, Treino, Aval } from "./types";
 import { agora, novoId, sessaoId } from "./types";
 import { dataHoje, diaDaSemana, treinosDoPrograma, treinosVisiveis } from "./utils";
@@ -22,12 +22,17 @@ const PREFS_PADRAO = (): Prefs => ({
 });
 
 interface Estado {
+  /** sessão de login já verificada (define se mostra a tela de login ou o app) */
+  authPronto: boolean;
+  /** dados do usuário logado carregados do banco local */
   pronto: boolean;
   tab: Aba;
   editandoTreinoId: string | null;
   dataAtiva: string;
   treinoAtivoId: string | null;
   usuario: { id: string; email?: string } | null;
+  /** chegou pelo link de "esqueci a senha" — mostra o modal de nova senha */
+  recuperandoSenha: boolean;
   sincronizando: boolean;
   ultimoSync: number | null;
   syncResumo: string | null;
@@ -42,6 +47,10 @@ interface Estado {
   prefs: Prefs;
 
   init(): Promise<void>;
+  /** abre o banco do usuário, semeia treinos/programas padrão e carrega tudo */
+  entrarComoUsuario(userId: string): Promise<void>;
+  /** define a senha nova no fluxo de recuperação; retorna mensagem de erro ou null */
+  definirNovaSenha(senha: string): Promise<string | null>;
   recarregar(): Promise<void>;
   setTab(t: Aba): void;
   setEditandoTreino(id: string | null): void;
@@ -87,6 +96,9 @@ function sessaoVazia(data: string, treinoId: string): Sessao {
   return { id: sessaoId(data, treinoId), data, treinoId, registros: {}, obs: "", aval: {}, updated_at: agora() };
 }
 
+/** evita listeners e carga duplicados (StrictMode em dev re-executa efeitos) */
+let initJaRodou = false;
+
 export const useStore = create<Estado>((set, get) => {
   function persistir<T extends { id: string }>(tabela: Tabela, ent: T) {
     void db[tabela].put(ent as never);
@@ -114,13 +126,24 @@ export const useStore = create<Estado>((set, get) => {
     return treinosVisiveis(treinos)[0]?.id ?? null;
   }
 
+  const DADOS_VAZIOS = () => ({
+    exercicios: {},
+    treinos: {},
+    sessoes: {},
+    programas: {},
+    medidas: {},
+    prefs: PREFS_PADRAO(),
+  });
+
   return {
+    authPronto: false,
     pronto: false,
     tab: "hoje",
     editandoTreinoId: null,
     dataAtiva: dataHoje(),
     treinoAtivoId: null,
     usuario: null,
+    recuperandoSenha: false,
     sincronizando: false,
     ultimoSync: null,
     syncResumo: null,
@@ -134,6 +157,69 @@ export const useStore = create<Estado>((set, get) => {
     prefs: PREFS_PADRAO(),
 
     async init() {
+      if (initJaRodou) return;
+      initJaRodou = true;
+      const c = supa();
+      if (!c) {
+        // sem serviço de conta não há como logar — a tela de login explica
+        set({ authPronto: true });
+        return;
+      }
+
+      const { data } = await c.auth.getSession();
+      const u0 = data.session?.user ?? null;
+      set({ authPronto: true, usuario: u0 ? { id: u0.id, email: u0.email ?? undefined } : null });
+      setLogado(!!u0);
+
+      c.auth.onAuthStateChange((evento, session) => {
+        if (evento === "PASSWORD_RECOVERY") set({ recuperandoSenha: true });
+        const u = session?.user ?? null;
+        const antes = get().usuario?.id;
+        set({ usuario: u ? { id: u.id, email: u.email ?? undefined } : null });
+        setLogado(!!u);
+        if (u && u.id !== antes) void get().entrarComoUsuario(u.id);
+        if (!u && antes) {
+          // saiu da conta: fecha o banco dela e volta pra tela de login
+          limparFila();
+          fecharBanco();
+          set({
+            pronto: false,
+            ...DADOS_VAZIOS(),
+            tab: "hoje",
+            editandoTreinoId: null,
+            treinoAtivoId: null,
+            ultimoSync: null,
+            syncResumo: null,
+            migradas: 0,
+          });
+        }
+      });
+
+      if (u0) await get().entrarComoUsuario(u0.id);
+
+      // re-sincroniza ao reabrir/focar o app e ao voltar a rede, para pegar o
+      // que foi alterado em outro aparelho. Throttle simples de 15s.
+      const resyncSeAntigo = () => {
+        if (document.visibilityState === "hidden" || !get().usuario) return;
+        const ult = get().ultimoSync ?? 0;
+        if (Date.now() - ult > 15000) void get().sincronizarAgora();
+      };
+      document.addEventListener("visibilitychange", resyncSeAntigo);
+      window.addEventListener("focus", resyncSeAntigo);
+      window.addEventListener("online", () => void get().sincronizarAgora());
+      setInterval(resyncSeAntigo, 90000);
+    },
+
+    async entrarComoUsuario(userId) {
+      set({ pronto: false });
+      limparFila();
+      abrirBanco(userId);
+
+      // dados feitos neste aparelho antes do login obrigatório pertencem ao
+      // primeiro usuário que logar (o dono do aparelho até aqui)
+      const dono = usuarioDonoDoLegado(userId);
+      if (dono) await adotarBancoLegado();
+
       // semeia os treinos padrão (apenas ids ainda inexistentes — tombstones não ressuscitam)
       const seeds = gerarSeeds();
       const exIds = await db.exercicios.bulkGet(seeds.exercicios.map((e) => e.id));
@@ -181,39 +267,21 @@ export const useStore = create<Estado>((set, get) => {
         await setMeta("seed_version", 3);
       }
 
-      const migradas = await migrarLocal();
+      // o histórico do app antigo (localStorage) também é do dono do aparelho
+      const migradas = dono ? await migrarLocal() : 0;
       await get().recarregar();
       set({ pronto: true, migradas, treinoAtivoId: treinoSugerido(get().dataAtiva) });
+      void get().aoLogar();
+    },
 
+    async definirNovaSenha(senha) {
       const c = supa();
-      if (c) {
-        c.auth.getSession().then(({ data }) => {
-          const u = data.session?.user ?? null;
-          set({ usuario: u ? { id: u.id, email: u.email ?? undefined } : null });
-          setLogado(!!u);
-          if (u) void get().aoLogar();
-        });
-        c.auth.onAuthStateChange((_e, session) => {
-          const u = session?.user ?? null;
-          const antes = get().usuario?.id;
-          set({ usuario: u ? { id: u.id, email: u.email ?? undefined } : null });
-          setLogado(!!u);
-          if (u && u.id !== antes) void get().aoLogar();
-        });
-
-        // re-sincroniza ao reabrir/focar o app e ao voltar a rede, para pegar o
-        // que foi alterado em outro aparelho (a sync completa não rodava mais
-        // depois do login inicial). Throttle simples de 15s.
-        const resyncSeAntigo = () => {
-          if (document.visibilityState === "hidden") return;
-          const ult = get().ultimoSync ?? 0;
-          if (Date.now() - ult > 15000) void get().sincronizarAgora();
-        };
-        document.addEventListener("visibilitychange", resyncSeAntigo);
-        window.addEventListener("focus", resyncSeAntigo);
-        window.addEventListener("online", () => void get().sincronizarAgora());
-        setInterval(resyncSeAntigo, 90000);
-      }
+      if (!c) return "Sem conexão com o serviço de conta.";
+      if (senha.length < 6) return "A senha precisa de pelo menos 6 caracteres.";
+      const { error } = await c.auth.updateUser({ password: senha });
+      if (error) return traduzErro(error.message);
+      set({ recuperandoSenha: false });
+      return null;
     },
 
     async recarregar() {

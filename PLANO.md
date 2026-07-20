@@ -158,6 +158,14 @@ semana própria, pré-carga dos números da última sessão, barra de progresso
 fixa no cabeçalho, iniciar/encerrar treino com duração, e rótulos de dia/mês
 no calendário.
 
+- **Fase 5 — Multiusuário** ✅: login obrigatório com tela própria (entrar,
+  criar conta e recuperar senha), banco local separado por usuário
+  (`birl_u_<id>` no IndexedDB) para histórico/evolução individuais mesmo em
+  aparelho compartilhado, seeds (ficha A/B/C/D, biblioteca e programas) para
+  cada conta nova, e adoção dos dados pré-login pelo primeiro usuário que
+  logar no aparelho. Cada pessoa customiza os próprios treinos e programas
+  sem afetar as demais; o isolamento no Supabase segue por RLS/`user_id`.
+
 ## 8. Pontos de atenção
 
 - **Chave Supabase no código**: a chave atual é a *publishable* (própria
