@@ -6,6 +6,7 @@ import { Treinos } from "./screens/Treinos";
 import { Biblioteca } from "./screens/Biblioteca";
 import { Evolucao } from "./screens/Evolucao";
 import { Ajustes } from "./screens/Ajustes";
+import { Login, ModalNovaSenha } from "./screens/Login";
 import { DetalheExercicioModal } from "./detalhe";
 import { TimerDescansoPill } from "./TimerDescanso";
 import { contarSeries } from "./utils";
@@ -24,6 +25,15 @@ export function App() {
   useEffect(() => {
     void useStore.getState().init();
   }, []);
+
+  if (st.authPronto && !st.usuario) {
+    return (
+      <>
+        <Login />
+        <ModalNovaSenha />
+      </>
+    );
+  }
 
   if (!st.pronto) {
     return (
@@ -95,6 +105,7 @@ export function App() {
       <GlosModal />
       <DetalheExercicioModal />
       <TimerDescansoPill />
+      <ModalNovaSenha />
     </>
   );
 }

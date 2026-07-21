@@ -46,6 +46,11 @@ export function setLogado(v: boolean) {
   logado = v;
 }
 
+export function limparFila() {
+  fila.clear();
+  clearTimeout(timer);
+}
+
 export function enfileirar(tabela: Tabela, id: string) {
   if (!fila.has(tabela)) fila.set(tabela, new Set());
   fila.get(tabela)!.add(id);
