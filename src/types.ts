@@ -50,7 +50,10 @@ export interface RegistroSerie {
   kg: string;
   reps: string;
   rir: string;
+  /** linha inteira concluída (todas as séries individuais feitas) */
   done: boolean;
+  /** conclusão de cada série individual da linha (índice = série) */
+  feitos?: boolean[];
 }
 
 export interface Aval {

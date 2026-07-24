@@ -9,10 +9,13 @@ import type { RegistroSerie } from "../types";
 import { glosDaNota } from "../glossario";
 import {
   DIAS_SEMANA,
+  contarSeriesExercicio,
   dataHoje,
   diaDaSemana,
+  feitosDaLinha,
   formatarData,
   programasVisiveis,
+  seriesDaLinha,
   sessoesDoTreino,
   treinosDoPrograma,
   treinosVisiveis,
@@ -34,6 +37,11 @@ export function Hoje() {
   const treino = st.treinoAtivoId ? st.treinos[st.treinoAtivoId] : null;
   const sess = st.sessaoAtiva();
 
+  // exercícios retráteis: por padrão só o exercício "da vez" (primeiro com
+  // séries pendentes) fica aberto; toques no cabeçalho sobrescrevem
+  const [toggles, setToggles] = useState<Record<string, boolean>>({});
+  useEffect(() => setToggles({}), [st.treinoAtivoId, st.dataAtiva]);
+
   const sugestaoId = programa?.divisaoSemana[diaDaSemana(st.dataAtiva)];
   const sugestao = sugestaoId ? st.treinos[sugestaoId] : null;
 
@@ -50,6 +58,12 @@ export function Hoje() {
   const treinoForaDoPrograma = !treinos.some((t) => t.id === treino.id);
 
   const historico = sessoesDoTreino(st.sessoes, treino.id);
+
+  // exercício "da vez": o primeiro ainda com séries pendentes fica aberto
+  const daVezIdx = treino.exercicios.findIndex((x) => {
+    const c = contarSeriesExercicio(x, sess);
+    return c.total === 0 || c.feitas < c.total;
+  });
 
   return (
     <>
@@ -128,47 +142,75 @@ export function Hoje() {
         </div>
       </details>
 
-      {treino.exercicios.map((te) => {
+      {treino.exercicios.map((te, ti) => {
         const ex = st.exercicios[te.exercicioId];
         const ultima = ultimaCargaAntes(historico, te, st.dataAtiva);
+        const contEx = contarSeriesExercicio(te, sess);
+        const completo = contEx.total > 0 && contEx.feitas >= contEx.total;
+        const aberto = toggles[te.id] ?? ti === daVezIdx;
         return (
-          <section className="exercicio" key={te.id}>
-            <div className="ex-cabec">
-              {ex ? (
-                <button className="ex-nome clicavel" type="button" onClick={() => abrirDetalhe(ex.id)}>
-                  {ex.nome} <span className="info-ic" aria-hidden="true">ⓘ</span>
+          <section className={`exercicio${aberto ? "" : " fechado"}`} key={te.id}>
+            <div className="ex-topo">
+              <button
+                className="ex-toggle"
+                type="button"
+                aria-expanded={aberto}
+                onClick={() => setToggles((t) => ({ ...t, [te.id]: !aberto }))}
+              >
+                <span className="seta" aria-hidden="true">
+                  ›
+                </span>
+                <span className="ex-nome">{ex ? ex.nome : "Exercício removido"}</span>
+                <span className={`ex-prog${completo ? " ok" : ""}`}>
+                  {completo ? "✓ " : ""}
+                  {contEx.feitas}/{contEx.total}
+                </span>
+              </button>
+              {ex && (
+                <button className="q-btn info" type="button" onClick={() => abrirDetalhe(ex.id)} aria-label={`Detalhes de ${ex.nome}`}>
+                  ⓘ
                 </button>
-              ) : (
-                <div className="ex-nome">Exercício removido</div>
-              )}
-              {ex?.grupo && <div className="ex-grupo">{ex.grupo}</div>}
-              {te.aviso && <div className="ex-aviso">⚠ {te.aviso}</div>}
-              {ultima && (
-                <div className="ex-ultima">
-                  Da última vez ({formatarData(ultima.date)}): {ultima.kg} kg
-                  {ultima.reps ? ` × ${ultima.reps}` : ""}
-                  {ultima.rir !== "" ? ` · RIR ${ultima.rir}` : ""}
-                </div>
               )}
             </div>
+            {aberto && (ex?.grupo || te.aviso || ultima) && (
+              <div className="ex-cabec">
+                {ex?.grupo && <div className="ex-grupo">{ex.grupo}</div>}
+                {te.aviso && <div className="ex-aviso">⚠ {te.aviso}</div>}
+                {ultima && (
+                  <div className="ex-ultima">
+                    Da última vez ({formatarData(ultima.date)}): {ultima.kg} kg
+                    {ultima.reps ? ` × ${ultima.reps}` : ""}
+                    {ultima.rir !== "" ? ` · RIR ${ultima.rir}` : ""}
+                  </div>
+                )}
+              </div>
+            )}
+            {aberto && (
             <div className="ex-series">
               {te.series.map((s, si) => {
                 const chave = regKey(te.id, si);
                 const salvo = sess.registros[chave];
-                const registroVazio = !salvo || (!salvo.sets && !salvo.kg && !salvo.reps && !salvo.rir && !salvo.done);
+                const registroVazio =
+                  !salvo || (!salvo.sets && !salvo.kg && !salvo.reps && !salvo.rir && !salvo.done && !salvo.feitos?.some(Boolean));
                 // pré-carrega os números da última sessão como sugestão editável;
                 // eles só são gravados quando você marca Feito ou ajusta um campo
                 const sugestao = registroVazio ? ultimoRegistroDaSerie(historico, chave, st.dataAtiva) : null;
                 const r = salvo ?? REG_VAZIO;
                 const mostra = sugestao ?? r;
+                const n = seriesDaLinha(s.presc, mostra.sets);
+                const feitos = feitosDaLinha(salvo, n);
+                const feita = feitos.length > 0 && feitos.every(Boolean);
                 const mudar = (campo: "sets" | "kg" | "reps" | "rir", valor: string) => {
-                  if (sugestao) st.setRegistroCompleto(chave, { ...sugestao, done: false, [campo]: valor });
+                  if (sugestao) st.setRegistroCompleto(chave, { ...sugestao, done: false, feitos: [], [campo]: valor });
                   else st.setRegistro(chave, campo, valor);
                 };
-                const marcar = (checked: boolean) => {
-                  if (sugestao) st.setRegistroCompleto(chave, { ...sugestao, done: checked });
-                  else st.setRegistro(chave, "done", checked);
-                  if (checked && st.prefs.timerDescanso !== false) {
+                // marca/desmarca uma série individual; toda série marcada inicia o descanso
+                const alternarFeito = (i: number) => {
+                  const novos = feitos.slice();
+                  novos[i] = !novos[i];
+                  const base = sugestao ? { ...sugestao } : { ...r };
+                  st.setRegistroCompleto(chave, { ...base, feitos: novos, done: novos.every(Boolean) });
+                  if (novos[i] && st.prefs.timerDescanso !== false) {
                     const segundos = parseIntervalo(s.int);
                     if (segundos > 0) useTimer.getState().iniciar(segundos);
                   }
@@ -177,7 +219,7 @@ export function Hoje() {
                 const glosNota = glosDaNota(s.nota);
                 const clsInput = sugestao ? "sugerida" : "";
                 return (
-                  <div className={`serie${r.done ? " feita" : ""}`} key={si}>
+                  <div className={`serie${feita ? " feita" : ""}`} key={si}>
                     <div className="serie-top">
                       <button
                         className={`badge ${s.tipo}`}
@@ -194,15 +236,24 @@ export function Hoje() {
                         <b>{s.presc}</b> · intervalo {s.int}
                       </span>
                       {sugestao && <span className="tag-sugestao">última sessão</span>}
-                      <label className="check">
-                        <input
-                          type="checkbox"
-                          checked={r.done}
-                          onChange={(e) => marcar(e.target.checked)}
-                          aria-label={sugestao ? "Marcar como feita mantendo os números da última sessão" : "Marcar como feita"}
-                        />{" "}
-                        Feito
-                      </label>
+                    </div>
+                    <div className="feitos-linha">
+                      {feitos.map((f, i) => (
+                        <button
+                          key={i}
+                          type="button"
+                          className={`feito-btn${f ? " on" : ""}`}
+                          aria-pressed={f}
+                          onClick={() => alternarFeito(i)}
+                          aria-label={
+                            n > 1
+                              ? `Marcar ${i + 1}ª série de ${ROTULO_TIPO[s.tipo].toLowerCase()} como feita`
+                              : "Marcar como feita"
+                          }
+                        >
+                          ✓ {n > 1 ? `${i + 1}ª` : "Feito"}
+                        </button>
+                      ))}
                     </div>
                     <div className="serie-inputs">
                       <div className="campo">
@@ -280,6 +331,7 @@ export function Hoje() {
                 );
               })}
             </div>
+            )}
           </section>
         );
       })}
