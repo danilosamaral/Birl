@@ -1,4 +1,4 @@
-import type { Programa, Sessao, Treino, TreinoExercicio } from "./types";
+import type { Programa, RegistroSerie, Sessao, Treino, TreinoExercicio } from "./types";
 
 export function dataHoje(): string {
   const d = new Date();
@@ -156,15 +156,45 @@ export function treinosVisiveis(treinos: Record<string, Treino>): Treino[] {
     .sort((a, b) => a.ordem - b.ordem);
 }
 
-/** Séries feitas/total de um treino numa sessão. */
+/**
+ * Quantas séries individuais uma linha prescreve: o valor digitado em
+ * "Séries" quando houver, senão o máximo da prescrição ("1-2 × 10 a 15" → 2).
+ */
+export function seriesDaLinha(presc: string, sets: string): number {
+  const digitado = parseInt(sets, 10);
+  if (digitado > 0) return Math.min(digitado, 12);
+  const m = presc.match(/^\s*(\d+)\s*(?:-\s*(\d+))?/);
+  const n = m ? Number(m[2] ?? m[1]) : 1;
+  return Math.min(Math.max(n, 1), 12);
+}
+
+/** Conclusão de cada série individual da linha (registros antigos: done vale para todas). */
+export function feitosDaLinha(r: RegistroSerie | undefined, n: number): boolean[] {
+  const base = r?.feitos ?? (r?.done ? Array<boolean>(n).fill(true) : []);
+  return Array.from({ length: n }, (_, i) => !!base[i]);
+}
+
+/** Séries individuais feitas/total de um exercício numa sessão. */
+export function contarSeriesExercicio(te: TreinoExercicio, sessao: Sessao): { feitas: number; total: number } {
+  let total = 0;
+  let feitas = 0;
+  te.series.forEach((s, si) => {
+    const r = sessao.registros[`${te.id}:${si}`];
+    const n = seriesDaLinha(s.presc, r?.sets ?? "");
+    total += n;
+    feitas += feitosDaLinha(r, n).filter(Boolean).length;
+  });
+  return { feitas, total };
+}
+
+/** Séries individuais feitas/total de um treino numa sessão. */
 export function contarSeries(treino: Treino, sessao: Sessao): { feitas: number; total: number } {
   let total = 0;
   let feitas = 0;
   for (const te of treino.exercicios) {
-    te.series.forEach((_s, si) => {
-      total++;
-      if (sessao.registros[`${te.id}:${si}`]?.done) feitas++;
-    });
+    const c = contarSeriesExercicio(te, sessao);
+    total += c.total;
+    feitas += c.feitas;
   }
   return { feitas, total };
 }

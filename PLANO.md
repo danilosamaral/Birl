@@ -166,6 +166,17 @@ no calendário.
   logar no aparelho. Cada pessoa customiza os próprios treinos e programas
   sem afetar as demais; o isolamento no Supabase segue por RLS/`user_id`.
 
+- **Fase 6 — Registro por série e exercícios retráteis** ✅: cada linha de
+  série passou a ter um botão de "feito" por série individual prescrita
+  (ex.: aquecimento "1-2 ×" gera dois botões 1ª/2ª), disparando o timer de
+  descanso a cada marcação — não só na transição aquecimento→ajuste→trabalho.
+  O `RegistroSerie` ganhou o campo `feitos: boolean[]` (retrocompatível: o
+  `done` antigo vale como "todas feitas"); os contadores de progresso passam
+  a somar séries individuais. Na tela Hoje, os exercícios ficam recolhidos
+  por padrão, deixando aberto apenas o "da vez" (primeiro com séries
+  pendentes); o cabeçalho recolhido mostra nome, progresso (feitas/total) e
+  atalho de detalhe, e um toque abre/fecha manualmente.
+
 ## 8. Pontos de atenção
 
 - **Chave Supabase no código**: a chave atual é a *publishable* (própria
