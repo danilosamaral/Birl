@@ -1,9 +1,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { createPortal } from "react-dom";
 import { useStore } from "../store";
-import { documentoRelatorio } from "../relatorio";
+import { entregarPdf, montarPdf, nomeArquivoRelatorio } from "../pdf";
 import { Grafico } from "../chart";
-import { ATRIBUTOS, CAMPOS_MEDIDA } from "../types";
+import { ATRIBUTOS } from "../types";
 import type { Treino } from "../types";
 import {
   COR_SEM_PROGRAMA,
@@ -31,7 +30,6 @@ import {
   streakSemanas,
   volumeSemanal,
 } from "../analise";
-import type { Programa } from "../types";
 import { VisaoMedidas } from "./Medidas";
 
 type Metrica = "carga" | "volume" | "e1rm";
@@ -45,8 +43,9 @@ export function Evolucao() {
   const programas = programasVisiveis(st.programas);
   const [programaId, setProgramaId] = useState<string | null>(() => st.programaAtivo()?.id ?? programas[0]?.id ?? null);
   const [selecionadoId, setSelecionadoId] = useState<string>("geral");
-  const [imprimindo, setImprimindo] = useState(false);
-  const janelaRef = useRef<Window | null>(null);
+  const [gerando, setGerando] = useState(false);
+  const [erroPdf, setErroPdf] = useState<string | null>(null);
+  const jsPdfRef = useRef<typeof import("jspdf") | null>(null);
 
   const programa = (programaId && st.programas[programaId]) || st.programaAtivo() || programas[0] || null;
   const treinos = programa ? treinosDoPrograma(programa, st.treinos) : [];
@@ -59,59 +58,41 @@ export function Evolucao() {
     if (selecionadoId !== "geral" && selecionadoId !== "medidas") setSelecionadoId("geral");
   }
 
-  function gerarRelatorio() {
-    // window.open precisa acontecer de forma síncrona dentro do clique, senão o
-    // bloqueador de pop-up derruba a aba. A janela nasce em branco e recebe o
-    // conteúdo depois, quando o React já montou o relatório.
-    try {
-      janelaRef.current = window.open("", "_blank");
-    } catch {
-      janelaRef.current = null;
-    }
-    setImprimindo(true);
-  }
-
-  // O relatório só existe no DOM enquanto `imprimindo` é true. Esperamos dois
-  // frames (layout + paint garantidos) antes de ler o HTML dele — sem isso o nó
-  // ainda não existe e a saída fica vazia.
+  // Pré-carrega o jsPDF. Além de tirar a espera do clique, isso é o que mantém
+  // a montagem do PDF síncrona: `navigator.share` só é aceito dentro do gesto
+  // do usuário, e um await que já resolveu não quebra esse gesto.
   useEffect(() => {
-    if (!imprimindo) return;
     let vivo = true;
-    const encerrar = () => {
-      if (vivo) setImprimindo(false);
-    };
-    window.addEventListener("afterprint", encerrar);
-    const raf = requestAnimationFrame(() =>
-      requestAnimationFrame(() => {
-        if (!vivo) return;
-        const no = document.getElementById("relatorio");
-        const janela = janelaRef.current;
-        janelaRef.current = null;
-
-        if (no && janela && !janela.closed) {
-          const doc = documentoRelatorio(no.outerHTML, `Relatório BIRL! — ${programa?.nome ?? "treinos"}`);
-          janela.document.open();
-          janela.document.write(doc);
-          janela.document.close();
-          encerrar();
-          return;
-        }
-
-        // pop-up bloqueado (ou aba fechada antes da hora): imprime a própria
-        // página, que é o caminho que já funcionava no desktop
-        janela?.close();
-        window.print();
-        // Safari/iOS não dispara `afterprint` de forma confiável; print() é
-        // síncrono até o diálogo fechar, então isto roda depois dele.
-        setTimeout(encerrar, 0);
-      })
-    );
+    void import("jspdf").then((m) => {
+      if (vivo) jsPdfRef.current = m;
+    });
     return () => {
       vivo = false;
-      cancelAnimationFrame(raf);
-      window.removeEventListener("afterprint", encerrar);
     };
-  }, [imprimindo, programa]);
+  }, []);
+
+  async function gerarRelatorio() {
+    setErroPdf(null);
+    setGerando(true);
+    try {
+      const mod = jsPdfRef.current ?? (await import("jspdf"));
+      jsPdfRef.current = mod;
+      const blob = montarPdf(mod.jsPDF, {
+        programa,
+        treinos: st.treinos,
+        sessoes: st.sessoes,
+        exercicios: st.exercicios,
+        medidas: st.medidas,
+      });
+      await entregarPdf(blob, nomeArquivoRelatorio(programa));
+    } catch (e) {
+      console.error("falha ao gerar o relatório", e);
+      setErroPdf("Não foi possível gerar o PDF. Tente de novo em instantes.");
+    } finally {
+      // o botão nunca fica preso: qualquer falha acima passa por aqui
+      setGerando(false);
+    }
+  }
 
   return (
     <>
@@ -146,15 +127,12 @@ export function Evolucao() {
 
       {selecionadoId !== "medidas" && (
         <div className="acoes" style={{ marginTop: 4 }}>
-          <button className="btn btn-pri" type="button" onClick={gerarRelatorio} disabled={imprimindo}>
-            {imprimindo ? "Preparando relatório..." : "Gerar relatório (PDF)"}
+          <button className="btn btn-pri" type="button" onClick={gerarRelatorio} disabled={gerando}>
+            {gerando ? "Gerando PDF..." : "Gerar relatório (PDF)"}
           </button>
+          {erroPdf && <p className="card-sub" role="alert" style={{ marginTop: 8 }}>{erroPdf}</p>}
         </div>
       )}
-
-      {/* fora de <main>: a folha de impressão esconde todos os filhos de <body>,
-          e o relatório precisa ser irmão de #root para sobreviver a isso */}
-      {imprimindo && createPortal(<Relatorio programa={programa} />, document.body)}
     </>
   );
 }
@@ -460,115 +438,5 @@ function CardsEvolucao({ treino, metrica }: { treino: Treino; metrica: Metrica }
         </div>
       )}
     </>
-  );
-}
-
-/* ---------- relatório para impressão ---------- */
-
-function Relatorio({ programa }: { programa: Programa | null }) {
-  const st = useStore();
-  const treinos = programa ? treinosDoPrograma(programa, st.treinos) : [];
-  const hoje = dataHoje();
-  // apenas as sessões dos treinos deste programa
-  const idsPrograma = new Set(treinos.map((t) => t.id));
-  const todas = Object.values(st.sessoes)
-    .filter((s) => !s.deleted && idsPrograma.has(s.treinoId))
-    .sort((a, b) => (a.data < b.data ? -1 : 1));
-  const datas = [...new Set(todas.map((s) => s.data))].sort();
-  const streak = streakSemanas(todas, hoje);
-  const ader = programa ? aderencia(programa, todas, hoje) : null;
-
-  return (
-    <div id="relatorio">
-      <h1>Relatório de Evolução — BIRL!</h1>
-      <div className="meta">
-        Programa: {programa?.nome ?? "—"} · Gerado em {formatarData(hoje)} · {todas.length} sessões registradas
-        {datas.length > 0 && ` · ${formatarData(datas[0])} a ${formatarData(datas[datas.length - 1])}`}
-        {streak > 0 && ` · sequência de ${streak} semana(s)`}
-        {ader && ` · aderência 4 semanas: ${ader.pct}%`}
-      </div>
-      {treinos.map((t) => {
-        const sessoes = sessoesDoTreino(st.sessoes, t.id);
-        if (sessoes.length === 0) return null;
-        const blocos = t.exercicios
-          .map((te) => {
-            const { pts, ultimo } = pontosCarga(sessoes, te);
-            if (pts.length === 0) return null;
-            const primeiro = pts[0].v;
-            const fim = pts[pts.length - 1].v;
-            const delta = fim - primeiro;
-            const pct = primeiro ? Math.round((delta / primeiro) * 100) : 0;
-            const prs = prsDoExercicio(sessoes, te);
-            const ex = st.exercicios[te.exercicioId];
-            return (
-              <div className="rel-ex" key={te.id}>
-                <div className="n">{ex?.nome ?? "Exercício removido"}</div>
-                <Grafico pts={pts} linha="#111" area="rgba(241,90,34,.10)" ponto="#f15a22" texto="#555" w={480} h={90} />
-                <div className="s">
-                  De {primeiro} kg para {fim} kg ·{" "}
-                  {pts.length > 1 ? `evolução ${formatarDelta(delta)} kg (${delta > 0 ? "+" : ""}${pct}%)` : "1ª carga registrada"} · última:{" "}
-                  {ultimo ? `${ultimo.kg} kg` : "—"}
-                  {prs.kg ? ` · PR: ${prs.kg.v} kg` : ""}
-                  {prs.e1rm ? ` · 1RM est. máx: ${prs.e1rm.v} kg` : ""}
-                </div>
-              </div>
-            );
-          })
-          .filter(Boolean);
-        const avalLinha = ATRIBUTOS.map(([k, rotulo]) => {
-          const pts = pontosAval(sessoes, k);
-          if (!pts.length) return null;
-          return `${rotulo}: ${(pts.reduce((a, p) => a + p.v, 0) / pts.length).toFixed(1)}/10`;
-        })
-          .filter(Boolean)
-          .join("   ");
-        if (blocos.length === 0 && !avalLinha) return null;
-        return (
-          <div key={t.id}>
-            <h2>
-              {t.nome}
-              {t.foco ? ` — ${t.foco}` : ""}
-            </h2>
-            {blocos}
-            {avalLinha && (
-              <div className="rel-ex">
-                <div className="n">Bem-estar (médias)</div>
-                <div className="s">{avalLinha}</div>
-              </div>
-            )}
-          </div>
-        );
-      })}
-      <RelatorioMedidas />
-      {datas.length === 0 && <p>Ainda não há dados registrados para gerar o relatório.</p>}
-    </div>
-  );
-}
-
-function RelatorioMedidas() {
-  const st = useStore();
-  const lista = Object.values(st.medidas)
-    .filter((m) => !m.deleted)
-    .sort((a, b) => (a.data < b.data ? -1 : 1));
-  if (lista.length === 0) return null;
-  const linhas = CAMPOS_MEDIDA.map(({ chave, rotulo, unidade }) => {
-    const pts = lista.filter((m) => m.valores[chave] != null);
-    if (pts.length === 0) return null;
-    const primeiro = pts[0].valores[chave];
-    const fim = pts[pts.length - 1].valores[chave];
-    const delta = fim - primeiro;
-    return `${rotulo}: ${fim} ${unidade}${pts.length > 1 ? ` (${formatarDelta(delta)} ${unidade})` : ""}`;
-  }).filter(Boolean);
-  if (linhas.length === 0) return null;
-  return (
-    <div>
-      <h2>Medidas corporais</h2>
-      <div className="rel-ex">
-        <div className="s">
-          {lista.length} registro(s) · {formatarData(lista[0].data)} a {formatarData(lista[lista.length - 1].data)}
-        </div>
-        <div className="s">{linhas.join(" · ")}</div>
-      </div>
-    </div>
   );
 }
