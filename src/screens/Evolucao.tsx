@@ -1,4 +1,5 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { useStore } from "../store";
 import { Grafico } from "../chart";
 import { ATRIBUTOS, CAMPOS_MEDIDA } from "../types";
@@ -56,13 +57,31 @@ export function Evolucao() {
     if (selecionadoId !== "geral" && selecionadoId !== "medidas") setSelecionadoId("geral");
   }
 
-  function imprimir() {
-    setImprimindo(true);
-    setTimeout(() => {
-      window.print();
-      setImprimindo(false);
-    }, 60);
-  }
+  // O relatório só existe no DOM enquanto `imprimindo` é true. Abrir a caixa de
+  // diálogo antes do browser pintar esse nó gera um PDF em branco, então só
+  // chamamos print() depois de dois frames (layout + paint garantidos).
+  useEffect(() => {
+    if (!imprimindo) return;
+    let vivo = true;
+    const encerrar = () => {
+      if (vivo) setImprimindo(false);
+    };
+    window.addEventListener("afterprint", encerrar);
+    const raf = requestAnimationFrame(() =>
+      requestAnimationFrame(() => {
+        if (!vivo) return;
+        window.print();
+        // Safari/iOS não dispara `afterprint` de forma confiável; print() é
+        // síncrono até o diálogo fechar, então isto roda depois dele.
+        setTimeout(encerrar, 0);
+      })
+    );
+    return () => {
+      vivo = false;
+      cancelAnimationFrame(raf);
+      window.removeEventListener("afterprint", encerrar);
+    };
+  }, [imprimindo]);
 
   return (
     <>
@@ -97,13 +116,15 @@ export function Evolucao() {
 
       {selecionadoId !== "medidas" && (
         <div className="acoes" style={{ marginTop: 4 }}>
-          <button className="btn btn-pri" type="button" onClick={imprimir}>
-            Gerar relatório (PDF)
+          <button className="btn btn-pri" type="button" onClick={() => setImprimindo(true)} disabled={imprimindo}>
+            {imprimindo ? "Preparando relatório..." : "Gerar relatório (PDF)"}
           </button>
         </div>
       )}
 
-      {imprimindo && <Relatorio programa={programa} />}
+      {/* fora de <main>: a folha de impressão esconde todos os filhos de <body>,
+          e o relatório precisa ser irmão de #root para sobreviver a isso */}
+      {imprimindo && createPortal(<Relatorio programa={programa} />, document.body)}
     </>
   );
 }
