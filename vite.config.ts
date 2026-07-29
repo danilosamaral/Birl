@@ -3,6 +3,13 @@ import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
 export default defineConfig({
+  resolve: {
+    alias: {
+      html2canvas: "/src/stub-vazio.ts",
+      canvg: "/src/stub-vazio.ts",
+      dompurify: "/src/stub-vazio.ts",
+    },
+  },
   plugins: [
     react(),
     VitePWA({
