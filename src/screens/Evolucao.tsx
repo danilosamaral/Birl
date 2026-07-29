@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { useStore } from "../store";
+import { documentoRelatorio } from "../relatorio";
 import { Grafico } from "../chart";
 import { ATRIBUTOS, CAMPOS_MEDIDA } from "../types";
 import type { Treino } from "../types";
@@ -45,6 +46,7 @@ export function Evolucao() {
   const [programaId, setProgramaId] = useState<string | null>(() => st.programaAtivo()?.id ?? programas[0]?.id ?? null);
   const [selecionadoId, setSelecionadoId] = useState<string>("geral");
   const [imprimindo, setImprimindo] = useState(false);
+  const janelaRef = useRef<Window | null>(null);
 
   const programa = (programaId && st.programas[programaId]) || st.programaAtivo() || programas[0] || null;
   const treinos = programa ? treinosDoPrograma(programa, st.treinos) : [];
@@ -57,9 +59,21 @@ export function Evolucao() {
     if (selecionadoId !== "geral" && selecionadoId !== "medidas") setSelecionadoId("geral");
   }
 
-  // O relatório só existe no DOM enquanto `imprimindo` é true. Abrir a caixa de
-  // diálogo antes do browser pintar esse nó gera um PDF em branco, então só
-  // chamamos print() depois de dois frames (layout + paint garantidos).
+  function gerarRelatorio() {
+    // window.open precisa acontecer de forma síncrona dentro do clique, senão o
+    // bloqueador de pop-up derruba a aba. A janela nasce em branco e recebe o
+    // conteúdo depois, quando o React já montou o relatório.
+    try {
+      janelaRef.current = window.open("", "_blank");
+    } catch {
+      janelaRef.current = null;
+    }
+    setImprimindo(true);
+  }
+
+  // O relatório só existe no DOM enquanto `imprimindo` é true. Esperamos dois
+  // frames (layout + paint garantidos) antes de ler o HTML dele — sem isso o nó
+  // ainda não existe e a saída fica vazia.
   useEffect(() => {
     if (!imprimindo) return;
     let vivo = true;
@@ -70,6 +84,22 @@ export function Evolucao() {
     const raf = requestAnimationFrame(() =>
       requestAnimationFrame(() => {
         if (!vivo) return;
+        const no = document.getElementById("relatorio");
+        const janela = janelaRef.current;
+        janelaRef.current = null;
+
+        if (no && janela && !janela.closed) {
+          const doc = documentoRelatorio(no.outerHTML, `Relatório BIRL! — ${programa?.nome ?? "treinos"}`);
+          janela.document.open();
+          janela.document.write(doc);
+          janela.document.close();
+          encerrar();
+          return;
+        }
+
+        // pop-up bloqueado (ou aba fechada antes da hora): imprime a própria
+        // página, que é o caminho que já funcionava no desktop
+        janela?.close();
         window.print();
         // Safari/iOS não dispara `afterprint` de forma confiável; print() é
         // síncrono até o diálogo fechar, então isto roda depois dele.
@@ -81,7 +111,7 @@ export function Evolucao() {
       cancelAnimationFrame(raf);
       window.removeEventListener("afterprint", encerrar);
     };
-  }, [imprimindo]);
+  }, [imprimindo, programa]);
 
   return (
     <>
@@ -116,7 +146,7 @@ export function Evolucao() {
 
       {selecionadoId !== "medidas" && (
         <div className="acoes" style={{ marginTop: 4 }}>
-          <button className="btn btn-pri" type="button" onClick={() => setImprimindo(true)} disabled={imprimindo}>
+          <button className="btn btn-pri" type="button" onClick={gerarRelatorio} disabled={imprimindo}>
             {imprimindo ? "Preparando relatório..." : "Gerar relatório (PDF)"}
           </button>
         </div>
