@@ -301,15 +301,22 @@ footer.creditos{text-align:center;color:#55555a;font-size:.74rem;padding:20px 16
 @media (prefers-reduced-motion:reduce){*{transition:none!important}}
 
 /* ---------- relatório (impressão) ---------- */
+/* O relatório é montado via portal como filho direto de <body> (fora de #root).
+   Esconder ancestrais com display:none apagaria o relatório junto — por isso a
+   regra abaixo apaga todos os filhos diretos de body e reexibe só o relatório. */
 #relatorio{display:none}
 @media print{
-  header.topo,nav.abas,nav.tabbar,main,.salvo-aviso{display:none!important}
-  body{background:#fff;color:#111}
-  #relatorio{display:block!important;padding:24px;max-width:none}
-  #relatorio h1{font-family:Arial,sans-serif;font-size:22px;margin:0 0 4px}
+  @page{margin:12mm}
+  html,body{height:auto!important;overflow:visible!important}
+  body{background:#fff!important;color:#111!important;padding:0!important}
+  body>*{display:none!important}
+  body>#relatorio{display:block!important;padding:0;max-width:none;
+    -webkit-print-color-adjust:exact;print-color-adjust:exact}
+  #relatorio h1{font-family:Arial,sans-serif;font-size:22px;margin:0 0 4px;color:#111}
   #relatorio .meta{color:#555;font-size:12px;margin-bottom:18px}
-  #relatorio h2{font-family:Arial,sans-serif;font-size:16px;border-bottom:2px solid #f15a22;padding-bottom:4px;margin:22px 0 10px}
-  #relatorio .rel-ex{margin:0 0 14px;page-break-inside:avoid}
+  #relatorio h2{font-family:Arial,sans-serif;font-size:16px;border-bottom:2px solid #f15a22;padding-bottom:4px;margin:22px 0 10px;color:#111;break-after:avoid;page-break-after:avoid}
+  #relatorio .rel-ex{margin:0 0 14px;break-inside:avoid;page-break-inside:avoid}
   #relatorio .rel-ex .n{font-weight:bold;font-size:13px;margin-bottom:2px}
   #relatorio .rel-ex .s{font-size:12px;color:#333}
+  #relatorio svg{max-width:100%;height:auto}
 }
