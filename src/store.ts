@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { abrirBanco, adotarBancoLegado, db, fecharBanco, getMeta, setMeta, usuarioDonoDoLegado } from "./db";
 import { gerarSeeds } from "./seeds";
-import { gerarBiblioteca, gerarEnriquecimentoSeeds, SEED_EPOCH_V2 } from "./biblioteca";
+import { gerarBiblioteca, gerarEnriquecimentoSeeds, SEED_EPOCH_V2, SEED_EPOCH_V3 } from "./biblioteca";
 import { CATALOGO, exercicioNovoDoCatalogo } from "./catalogo";
 import { seedExercicioId } from "./seeds";
 import type { TreinoExercicio } from "./types";
@@ -274,6 +274,23 @@ export const useStore = create<Estado>((set, get) => {
         const libExistentes = await db.exercicios.bulkGet(lib.map((e) => e.id));
         await db.exercicios.bulkAdd(lib.filter((_, i) => !libExistentes[i])).catch(() => {});
         await setMeta("seed_version", 4);
+      }
+
+      // v5: fotos de execução nos exercícios de Punho / Antebraço, que entraram
+      // na v4 sem mídia. Data mais nova que a da v4 para a foto vencer por LWW
+      // a cópia sem mídia já sincronizada — e ainda perder para uma edição sua.
+      if (((await getMeta<number>("seed_version")) ?? 1) < 5) {
+        const lib = gerarBiblioteca();
+        const libExistentes = await db.exercicios.bulkGet(lib.map((e) => e.id));
+        await db.exercicios.bulkAdd(lib.filter((_, i) => !libExistentes[i])).catch(() => {});
+        for (const [i, novo] of lib.entries()) {
+          const row = libExistentes[i];
+          // só preenche quem ainda está sem foto — nunca troca as suas
+          if (row && novo.midia && !row.midia) {
+            await db.exercicios.put({ ...row, midia: novo.midia, updated_at: SEED_EPOCH_V3 });
+          }
+        }
+        await setMeta("seed_version", 5);
       }
 
       // o histórico do app antigo (localStorage) também é do dono do aparelho
