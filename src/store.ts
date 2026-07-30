@@ -267,6 +267,15 @@ export const useStore = create<Estado>((set, get) => {
         await setMeta("seed_version", 3);
       }
 
+      // v4: exercícios novos da biblioteca curada (grupo Punho / Antebraço).
+      // Insere só os ids que ainda não existem — nunca sobrescreve edições suas.
+      if (((await getMeta<number>("seed_version")) ?? 1) < 4) {
+        const lib = gerarBiblioteca();
+        const libExistentes = await db.exercicios.bulkGet(lib.map((e) => e.id));
+        await db.exercicios.bulkAdd(lib.filter((_, i) => !libExistentes[i])).catch(() => {});
+        await setMeta("seed_version", 4);
+      }
+
       // o histórico do app antigo (localStorage) também é do dono do aparelho
       const migradas = dono ? await migrarLocal() : 0;
       await get().recarregar();

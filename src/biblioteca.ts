@@ -1,5 +1,5 @@
 import type { Exercicio, Midia } from "./types";
-import { seedExercicioId } from "./seeds";
+import { seedExercicioId, slug } from "./seeds";
 
 /**
  * Biblioteca curada de exercícios com imagens de execução da base pública
@@ -18,13 +18,23 @@ interface DefBib {
   nome: string;
   grupo: string;
   equipamento: string;
-  libId: string;
+  /** id na free-exercise-db; ausente quando o exercício ainda não tem imagens lá */
+  libId?: string;
   passos: string[];
 }
 
 const B = (nome: string, grupo: string, equipamento: string, libId: string, passos: string[]): DefBib => ({
   nome, grupo, equipamento, libId, passos,
 });
+
+/** Igual ao B, mas sem imagens da base pública — fotos e vídeo ficam opcionais. */
+const BSM = (nome: string, grupo: string, equipamento: string, passos: string[]): DefBib => ({
+  nome, grupo, equipamento, passos,
+});
+
+function bibId(d: DefBib): string {
+  return `sd_lib_${d.libId ?? slug(d.nome)}`;
+}
 
 export const BIBLIOTECA: DefBib[] = [
   // ---------- Peito ----------
@@ -201,6 +211,37 @@ export const BIBLIOTECA: DefBib[] = [
     "Tronco ereto, cotovelos apontando para trás.",
     "Desça até ~90° de flexão.",
     "Suba até estender os braços.",
+  ]),
+  // ---------- Punho / Antebraço ----------
+  BSM("Rosca de punho (palma para cima)", "Punho / Antebraço", "Halteres", [
+    "Sente com antebraço apoiado na coxa ou banco, palma para cima.",
+    "Flexione o punho elevando a ponta do halter.",
+    "Desça controlado até o alongamento leve.",
+  ]),
+  BSM("Rosca de punho inversa (palma para baixo)", "Punho / Antebraço", "Halteres", [
+    "Sente com antebraço apoiado na coxa ou banco, palma para baixo.",
+    "Estenda o punho elevando o halter.",
+    "Desça controlado sem deixar cair.",
+  ]),
+  BSM("Farmer's walk", "Punho / Antebraço", "Halteres ou kettlebells", [
+    "Segure um peso pesado em cada mão, ombros para trás.",
+    "Caminhe em ritmo controlado mantendo o punho neutro.",
+    "Evite deixar o peso balançar ou o punho ceder.",
+  ]),
+  BSM("Plate pinch (pinça de anilha)", "Punho / Antebraço", "Anilha", [
+    "Segure a anilha pelas bordas usando só os dedos, sem apoiar na palma.",
+    "Mantenha a pegada firme pelo tempo determinado.",
+    "Evite compensar apoiando a anilha no corpo.",
+  ]),
+  BSM("Mobilidade de punho (aquecimento)", "Punho / Antebraço", "Peso do corpo", [
+    "Faça círculos lentos com o punho nos dois sentidos.",
+    "Flexione e estenda o punho ativamente, sem carga.",
+    "Repita antes de exercícios pesados de empurrar ou puxar.",
+  ]),
+  BSM("Alongamento de punho na mesa", "Punho / Antebraço", "Peso do corpo", [
+    "Apoie a palma da mão numa superfície, dedos apontando para você.",
+    "Incline o corpo para trás mantendo a mão apoiada.",
+    "Segure o alongamento sem forçar além do desconforto leve.",
   ]),
   // ---------- Pernas ----------
   B("Agachamento frontal", "Quadríceps", "Barra", "Front_Barbell_Squat", [
@@ -473,13 +514,13 @@ const ENR: Array<[string, string, string, string[]]> = [
 
 export function gerarBiblioteca(): Exercicio[] {
   return BIBLIOTECA.map((d) => ({
-    id: `sd_lib_${d.libId}`,
+    id: bibId(d),
     nome: d.nome,
     grupo: d.grupo,
     equipamento: d.equipamento,
     instrucoes: d.passos.join("\n"),
-    midia: { imagens: imgs(d.libId) },
-    origem: "seed",
+    ...(d.libId ? { midia: { imagens: imgs(d.libId) } } : {}),
+    origem: "seed" as const,
     updated_at: SEED_EPOCH_V2,
   }));
 }
