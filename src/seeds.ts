@@ -9,7 +9,7 @@ import type { Exercicio, Treino, SeriePlano } from "./types";
 
 const SEED_EPOCH = "2026-01-01T00:00:00.000Z";
 
-function slug(nome: string) {
+export function slug(nome: string) {
   return nome
     .toLowerCase()
     .normalize("NFD")
@@ -122,7 +122,7 @@ export function gerarSeeds(): { treinos: Treino[]; exercicios: Exercicio[] } {
 }
 
 export const GRUPOS_MUSCULARES = [
-  "Peito", "Costas", "Ombro", "Bíceps", "Tríceps", "Antebraço",
+  "Peito", "Costas", "Ombro", "Bíceps", "Tríceps", "Punho / Antebraço",
   "Quadríceps", "Posterior", "Glúteos", "Panturrilha", "Abdômen",
   "Lombar", "Trapézio", "Cardio", "Outro",
 ];
