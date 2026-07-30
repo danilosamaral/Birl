@@ -9,6 +9,7 @@ import { seedExercicioId, slug } from "./seeds";
 
 export const MIDIA_CDN = "https://cdn.jsdelivr.net/gh/yuhonas/free-exercise-db@main/exercises/";
 export const SEED_EPOCH_V2 = "2026-01-02T00:00:00.000Z";
+export const SEED_EPOCH_V3 = "2026-01-03T00:00:00.000Z";
 
 function imgs(libId: string): string[] {
   return [`${MIDIA_CDN}${libId}/0.jpg`, `${MIDIA_CDN}${libId}/1.jpg`];
@@ -18,8 +19,10 @@ interface DefBib {
   nome: string;
   grupo: string;
   equipamento: string;
-  /** id na free-exercise-db; ausente quando o exercício ainda não tem imagens lá */
+  /** id na free-exercise-db, usado tanto no id do exercício quanto nas imagens */
   libId?: string;
+  /** só as imagens da free-exercise-db, para quem já tem id próprio */
+  imgId?: string;
   passos: string[];
 }
 
@@ -27,9 +30,13 @@ const B = (nome: string, grupo: string, equipamento: string, libId: string, pass
   nome, grupo, equipamento, libId, passos,
 });
 
-/** Igual ao B, mas sem imagens da base pública — fotos e vídeo ficam opcionais. */
-const BSM = (nome: string, grupo: string, equipamento: string, passos: string[]): DefBib => ({
-  nome, grupo, equipamento, passos,
+/**
+ * Exercício cujo id sai do nome, para os que não vieram da free-exercise-db.
+ * O id não pode mudar depois de publicado (o histórico aponta para ele), então
+ * imagens encontradas depois na base pública entram por `imgId`, não por `libId`.
+ */
+const BN = (nome: string, grupo: string, equipamento: string, imgId: string | undefined, passos: string[]): DefBib => ({
+  nome, grupo, equipamento, imgId, passos,
 });
 
 function bibId(d: DefBib): string {
@@ -213,32 +220,33 @@ export const BIBLIOTECA: DefBib[] = [
     "Suba até estender os braços.",
   ]),
   // ---------- Punho / Antebraço ----------
-  BSM("Rosca de punho (palma para cima)", "Punho / Antebraço", "Halteres", [
+  BN("Rosca de punho (palma para cima)", "Punho / Antebraço", "Halteres", "Seated_Dumbbell_Palms-Up_Wrist_Curl", [
     "Sente com antebraço apoiado na coxa ou banco, palma para cima.",
     "Flexione o punho elevando a ponta do halter.",
     "Desça controlado até o alongamento leve.",
   ]),
-  BSM("Rosca de punho inversa (palma para baixo)", "Punho / Antebraço", "Halteres", [
+  BN("Rosca de punho inversa (palma para baixo)", "Punho / Antebraço", "Halteres", "Seated_Dumbbell_Palms-Down_Wrist_Curl", [
     "Sente com antebraço apoiado na coxa ou banco, palma para baixo.",
     "Estenda o punho elevando o halter.",
     "Desça controlado sem deixar cair.",
   ]),
-  BSM("Farmer's walk", "Punho / Antebraço", "Halteres ou kettlebells", [
+  BN("Farmer's walk", "Punho / Antebraço", "Halteres ou kettlebells", "Farmers_Walk", [
     "Segure um peso pesado em cada mão, ombros para trás.",
     "Caminhe em ritmo controlado mantendo o punho neutro.",
     "Evite deixar o peso balançar ou o punho ceder.",
   ]),
-  BSM("Plate pinch (pinça de anilha)", "Punho / Antebraço", "Anilha", [
+  BN("Plate pinch (pinça de anilha)", "Punho / Antebraço", "Anilha", "Plate_Pinch", [
     "Segure a anilha pelas bordas usando só os dedos, sem apoiar na palma.",
     "Mantenha a pegada firme pelo tempo determinado.",
     "Evite compensar apoiando a anilha no corpo.",
   ]),
-  BSM("Mobilidade de punho (aquecimento)", "Punho / Antebraço", "Peso do corpo", [
+  BN("Mobilidade de punho (aquecimento)", "Punho / Antebraço", "Peso do corpo", "Wrist_Circles", [
     "Faça círculos lentos com o punho nos dois sentidos.",
     "Flexione e estenda o punho ativamente, sem carga.",
     "Repita antes de exercícios pesados de empurrar ou puxar.",
   ]),
-  BSM("Alongamento de punho na mesa", "Punho / Antebraço", "Peso do corpo", [
+  // as fotos são a versão ajoelhado no chão — mesma posição de punho da mesa
+  BN("Alongamento de punho na mesa", "Punho / Antebraço", "Peso do corpo", "Kneeling_Forearm_Stretch", [
     "Apoie a palma da mão numa superfície, dedos apontando para você.",
     "Incline o corpo para trás mantendo a mão apoiada.",
     "Segure o alongamento sem forçar além do desconforto leve.",
@@ -513,16 +521,19 @@ const ENR: Array<[string, string, string, string[]]> = [
 ];
 
 export function gerarBiblioteca(): Exercicio[] {
-  return BIBLIOTECA.map((d) => ({
-    id: bibId(d),
-    nome: d.nome,
-    grupo: d.grupo,
-    equipamento: d.equipamento,
-    instrucoes: d.passos.join("\n"),
-    ...(d.libId ? { midia: { imagens: imgs(d.libId) } } : {}),
-    origem: "seed" as const,
-    updated_at: SEED_EPOCH_V2,
-  }));
+  return BIBLIOTECA.map((d) => {
+    const img = d.libId ?? d.imgId;
+    return {
+      id: bibId(d),
+      nome: d.nome,
+      grupo: d.grupo,
+      equipamento: d.equipamento,
+      instrucoes: d.passos.join("\n"),
+      ...(img ? { midia: { imagens: imgs(img) } } : {}),
+      origem: "seed" as const,
+      updated_at: SEED_EPOCH_V2,
+    };
+  });
 }
 
 export function gerarEnriquecimentoSeeds(): Record<string, Enriquecimento> {
