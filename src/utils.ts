@@ -1,4 +1,4 @@
-import type { Programa, RegistroSerie, Sessao, Treino, TreinoExercicio } from "./types";
+import type { Programa, RegistroSerie, SeriePlano, Sessao, Treino, TreinoExercicio } from "./types";
 
 export function dataHoje(): string {
   const d = new Date();
@@ -29,6 +29,56 @@ export function sessoesDoTreino(sessoes: Record<string, Sessao>, treinoId: strin
   return Object.values(sessoes)
     .filter((s) => s.treinoId === treinoId && !s.deleted)
     .sort((a, b) => (a.data < b.data ? -1 : 1));
+}
+
+/** Todas as sessões, de qualquer treino, ordenadas por data. */
+export function todasAsSessoes(sessoes: Record<string, Sessao>): Sessao[] {
+  return Object.values(sessoes)
+    .filter((s) => !s.deleted)
+    .sort((a, b) => (a.data < b.data ? -1 : 1));
+}
+
+/** Exercícios extras registrados numa sessão (fora do plano do treino). */
+export function extrasDaSessao(sessao: Sessao): TreinoExercicio[] {
+  return sessao.extras ?? [];
+}
+
+/** Plano do treino + extras do dia, na ordem em que aparecem na tela. */
+export function exerciciosDaSessao(treino: Treino, sessao: Sessao): Array<{ te: TreinoExercicio; extra: boolean }> {
+  return [
+    ...treino.exercicios.map((te) => ({ te, extra: false })),
+    ...extrasDaSessao(sessao).map((te) => ({ te, extra: true })),
+  ];
+}
+
+/**
+ * Extras distintos que aparecem numa lista de sessões (o id é estável por
+ * exercício, então o mesmo extra em dias diferentes vira um item só).
+ */
+export function extrasDasSessoes(sessoes: Sessao[]): TreinoExercicio[] {
+  const porId = new Map<string, TreinoExercicio>();
+  for (const s of sessoes) {
+    for (const te of extrasDaSessao(s)) if (!porId.has(te.id)) porId.set(te.id, te);
+  }
+  return [...porId.values()];
+}
+
+/**
+ * Plano de séries já cadastrado para um exercício, procurando primeiro nos
+ * treinos do programa ativo. Serve de ponto de partida para o mesmo exercício
+ * feito como extra — quem não está em treino nenhum cai no padrão.
+ */
+export function planoDoExercicio(
+  exercicioId: string,
+  treinos: Record<string, Treino>,
+  programa: Programa | null
+): SeriePlano[] | null {
+  const candidatos = [...(programa ? treinosDoPrograma(programa, treinos) : []), ...treinosVisiveis(treinos)];
+  for (const t of candidatos) {
+    const te = t.exercicios.find((x) => x.exercicioId === exercicioId);
+    if (te && te.series.length > 0) return te.series.map((s) => ({ ...s }));
+  }
+  return null;
 }
 
 export interface PontoCarga {
@@ -187,11 +237,11 @@ export function contarSeriesExercicio(te: TreinoExercicio, sessao: Sessao): { fe
   return { feitas, total };
 }
 
-/** Séries individuais feitas/total de um treino numa sessão. */
+/** Séries individuais feitas/total de um treino numa sessão (extras incluídos). */
 export function contarSeries(treino: Treino, sessao: Sessao): { feitas: number; total: number } {
   let total = 0;
   let feitas = 0;
-  for (const te of treino.exercicios) {
+  for (const { te } of exerciciosDaSessao(treino, sessao)) {
     const c = contarSeriesExercicio(te, sessao);
     total += c.total;
     feitas += c.feitas;

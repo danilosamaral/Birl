@@ -17,6 +17,7 @@ import {
   formatarData,
   formatarDataCurta,
   formatarDelta,
+  extrasDasSessoes,
   pontosAval,
   pontosCarga,
   sessoesDoTreino,
@@ -147,11 +148,19 @@ export function montarPdf(JsPDF: Construtor, d: DadosRelatorio): Blob {
     const sessoes = sessoesDoTreino(d.sessoes, t.id);
     if (sessoes.length === 0) continue;
 
-    const exercicios = t.exercicios
-      .map((te) => {
+    // plano do treino + exercícios extras registrados nessas sessões
+    const doPlano = t.exercicios.map((te) => ({ te, extra: false }));
+    const extras = extrasDasSessoes(sessoes)
+      .map((te) => ({ te, extra: true }))
+      .sort((a, b) =>
+        (d.exercicios[a.te.exercicioId]?.nome ?? "").localeCompare(d.exercicios[b.te.exercicioId]?.nome ?? "", "pt-BR")
+      );
+    const exercicios = [...doPlano, ...extras]
+      .map(({ te, extra }) => {
         const { pts, ultimo } = pontosCarga(sessoes, te);
         if (pts.length === 0) return null;
-        return { te, pts, ultimo, prs: prsDoExercicio(sessoes, te), nome: d.exercicios[te.exercicioId]?.nome ?? "Exercício removido" };
+        const nome = d.exercicios[te.exercicioId]?.nome ?? "Exercício removido";
+        return { te, pts, ultimo, prs: prsDoExercicio(sessoes, te), nome: extra ? `${nome} (extra)` : nome };
       })
       .filter((x): x is NonNullable<typeof x> => x !== null);
 

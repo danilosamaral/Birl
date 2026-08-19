@@ -8,8 +8,8 @@ import type { TreinoExercicio } from "./types";
 import { migrarLocal, migrarRemoto } from "./migracao";
 import { enfileirar, limparFila, setLogado, sincronizarTudo, supa, traduzErro, usuarioAtual, type Tabela } from "./sync";
 import type { Exercicio, Medida, Prefs, Programa, RegistroSerie, Sessao, Treino, Aval } from "./types";
-import { agora, novoId, sessaoId } from "./types";
-import { dataHoje, diaDaSemana, treinosDoPrograma, treinosVisiveis } from "./utils";
+import { agora, extraId, novoId, seriesExtraPadrao, sessaoId } from "./types";
+import { dataHoje, diaDaSemana, planoDoExercicio, treinosDoPrograma, treinosVisiveis } from "./utils";
 
 export type Aba = "hoje" | "treinos" | "biblioteca" | "evolucao" | "ajustes";
 
@@ -79,6 +79,11 @@ interface Estado {
   sessaoAtiva(): Sessao;
   setRegistro(chave: string, campo: keyof RegistroSerie, valor: string | boolean): void;
   setRegistroCompleto(chave: string, registro: RegistroSerie): void;
+  /** Acrescenta ao dia um exercício que não está no plano do treino. */
+  adicionarExtra(exercicioId: string): void;
+  removerExtra(id: string): void;
+  adicionarSerieExtra(id: string): void;
+  removerSerieExtra(id: string, serieIdx: number): void;
   iniciarTreino(): void;
   encerrarTreino(): void;
   retomarTreino(): void;
@@ -538,6 +543,55 @@ export const useStore = create<Estado>((set, get) => {
       sess.registros = { ...sess.registros, [chave]: registro };
       salvarSessao(sess);
     },
+    adicionarExtra(exercicioId) {
+      const sess = { ...get().sessaoAtiva() };
+      const id = extraId(exercicioId);
+      if ((sess.extras ?? []).some((x) => x.id === id)) return; // já está no dia
+      const series = planoDoExercicio(exercicioId, get().treinos, get().programaAtivo()) ?? seriesExtraPadrao();
+      sess.extras = [...(sess.extras ?? []), { id, exercicioId, series }];
+      salvarSessao(sess);
+    },
+    removerExtra(id) {
+      const sess = { ...get().sessaoAtiva() };
+      if (!(sess.extras ?? []).some((x) => x.id === id)) return;
+      sess.extras = (sess.extras ?? []).filter((x) => x.id !== id);
+      sess.registros = Object.fromEntries(
+        Object.entries(sess.registros).filter(([chave]) => !chave.startsWith(`${id}:`))
+      );
+      salvarSessao(sess);
+    },
+    adicionarSerieExtra(id) {
+      const sess = { ...get().sessaoAtiva() };
+      const extras = (sess.extras ?? []).map((x) => {
+        if (x.id !== id) return x;
+        const ultima = x.series[x.series.length - 1];
+        return { ...x, series: [...x.series, ultima ? { ...ultima } : seriesExtraPadrao()[0]] };
+      });
+      sess.extras = extras;
+      salvarSessao(sess);
+    },
+    removerSerieExtra(id, serieIdx) {
+      const sess = { ...get().sessaoAtiva() };
+      const extra = (sess.extras ?? []).find((x) => x.id === id);
+      if (!extra || extra.series.length <= 1) return;
+      sess.extras = (sess.extras ?? []).map((x) =>
+        x.id === id ? { ...x, series: x.series.filter((_, i) => i !== serieIdx) } : x
+      );
+      // as linhas seguintes sobem uma posição — os registros acompanham
+      const prefixo = `${id}:`;
+      const registros: Record<string, RegistroSerie> = {};
+      for (const [chave, reg] of Object.entries(sess.registros)) {
+        if (!chave.startsWith(prefixo)) {
+          registros[chave] = reg;
+          continue;
+        }
+        const i = Number(chave.slice(prefixo.length));
+        if (i === serieIdx) continue;
+        registros[`${prefixo}${i > serieIdx ? i - 1 : i}`] = reg;
+      }
+      sess.registros = registros;
+      salvarSessao(sess);
+    },
     iniciarTreino() {
       const sess = { ...get().sessaoAtiva() };
       if (sess.inicio) return;
@@ -567,7 +621,7 @@ export const useStore = create<Estado>((set, get) => {
       salvarSessao(sess);
     },
     limparDia() {
-      const sess = { ...get().sessaoAtiva(), registros: {}, obs: "", aval: {}, deleted: true };
+      const sess = { ...get().sessaoAtiva(), registros: {}, extras: [], obs: "", aval: {}, deleted: true };
       const sessoes = { ...get().sessoes };
       delete sessoes[sess.id];
       set({ sessoes });
