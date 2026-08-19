@@ -13,6 +13,7 @@ import {
   formatarDataCurta,
   formatarDelta,
   formatarDuracao,
+  extrasDasSessoes,
   mapaTreinoPrograma,
   pontosAval,
   pontosCarga,
@@ -349,8 +350,17 @@ function CardsEvolucao({ treino, metrica }: { treino: Treino; metrica: Metrica }
   const sessoes = sessoesDoTreino(st.sessoes, treino.id);
   if (sessoes.length === 0) return null;
 
+  // exercícios do plano + os extras que apareceram nas sessões deste treino
+  const extras = extrasDasSessoes(sessoes).sort((a, b) =>
+    (st.exercicios[a.exercicioId]?.nome ?? "").localeCompare(st.exercicios[b.exercicioId]?.nome ?? "", "pt-BR")
+  );
+  const itens = [
+    ...treino.exercicios.map((te) => ({ te, extra: false })),
+    ...extras.map((te) => ({ te, extra: true })),
+  ];
+
   let algum = false;
-  const cards = treino.exercicios.map((te) => {
+  const cards = itens.map(({ te, extra }) => {
     const { pts: ptsCarga, ultimo } = pontosCarga(sessoes, te);
     const pts = metrica === "carga" ? ptsCarga : metrica === "volume" ? pontosVolume(sessoes, te) : pontosE1RM(sessoes, te);
     if (pts.length === 0) return null;
@@ -364,7 +374,10 @@ function CardsEvolucao({ treino, metrica }: { treino: Treino; metrica: Metrica }
     const unidade = metrica === "volume" ? "" : " kg";
     return (
       <div className="evo-card" key={te.id}>
-        <div className="evo-nome">{ex?.nome ?? "Exercício removido"}</div>
+        <div className="evo-nome">
+          {ex?.nome ?? "Exercício removido"}
+          {extra && <span className="tag-extra">extra</span>}
+        </div>
         <Grafico pts={pts} />
         <div className="evo-stat">
           <span className="item">

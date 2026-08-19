@@ -71,6 +71,12 @@ export interface Sessao {
   registros: Record<string, RegistroSerie>;
   obs: string;
   aval: Aval;
+  /**
+   * Exercícios feitos no dia fora do plano do treino (ex.: a academia estava
+   * cheia e você trocou/acrescentou algo). Cada extra carrega o próprio plano
+   * de séries e é registrado com as mesmas chaves de `registros`.
+   */
+  extras?: TreinoExercicio[];
   /** timestamps de iniciar/encerrar treino (duração da sessão) */
   inicio?: string;
   fim?: string;
@@ -151,6 +157,23 @@ export function sessaoId(data: string, treinoId: string) {
 
 export function regKey(treinoExercicioId: string, serieIdx: number) {
   return `${treinoExercicioId}:${serieIdx}`;
+}
+
+/**
+ * Id de um exercício extra numa sessão. É derivado do exercício (e não
+ * sorteado) para que o mesmo extra feito em dias diferentes compartilhe o
+ * histórico: sugestão da última vez, gráficos e PRs.
+ */
+export function extraId(exercicioId: string) {
+  return `extra_${exercicioId}`;
+}
+
+/** Plano de séries de um extra quando o exercício não está em nenhum treino. */
+export function seriesExtraPadrao(): SeriePlano[] {
+  return [
+    { tipo: "ajuste", presc: "1 × 4 a 6", int: "1 a 2 min" },
+    { tipo: "trabalho", presc: "1 × 6 a 10", int: "—" },
+  ];
 }
 
 export function agora() {

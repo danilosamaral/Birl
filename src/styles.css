@@ -80,6 +80,12 @@ details.painel[open]>summary .seta{transform:rotate(90deg)}
 /* ---------- exercício / séries (registro) ---------- */
 .exercicio{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);margin-bottom:14px;overflow:hidden}
 .exercicio.fechado{opacity:.68}
+.exercicio.extra{border-color:rgba(240,169,59,.42);border-left:3px solid var(--amber)}
+.tag-extra{display:inline-block;margin-left:8px;vertical-align:middle;font-family:var(--head);text-transform:uppercase;font-size:.58rem;font-weight:700;letter-spacing:.06em;color:var(--amber);border:1px solid rgba(240,169,59,.5);background:rgba(240,169,59,.12);border-radius:99px;padding:2px 8px}
+.ex-extra-nota{margin-top:6px;font-size:.8rem;color:var(--amber)}
+.serie-top .remove-linha{margin-left:auto;flex:0 0 auto;padding:6px 10px;min-height:34px}
+.add-extra{border:1px dashed var(--line);border-radius:var(--radius);padding:12px 14px;margin-bottom:16px}
+.add-extra p{margin:0 0 10px;font-size:.82rem;color:var(--muted)}
 .ex-topo{display:flex;align-items:center;gap:6px;padding-right:12px}
 .ex-toggle{flex:1;display:flex;align-items:center;gap:10px;background:none;border:none;color:var(--text);text-align:left;cursor:pointer;padding:13px 0 13px 16px;min-height:52px;min-width:0}
 .ex-toggle .seta{color:var(--orange);font-size:1.05rem;transition:transform .2s;flex:0 0 auto}
@@ -175,6 +181,7 @@ textarea:focus{outline:2px solid var(--orange);border-color:var(--orange)}
 .picker-lista{max-height:46vh;overflow-y:auto;display:flex;flex-direction:column;gap:6px}
 .picker-lista button{text-align:left;background:var(--surface-2);border:1px solid var(--line);color:var(--text);border-radius:10px;padding:10px 12px;cursor:pointer;font-size:.92rem}
 .picker-lista button small{display:block;color:var(--muted);font-size:.74rem;text-transform:uppercase;font-family:var(--head);letter-spacing:.04em}
+.picker-lista button:disabled{opacity:.45;cursor:default}
 
 /* ---------- evolução ---------- */
 .resumo-treino{background:var(--surface);border:1px solid var(--line);border-radius:var(--radius);padding:14px 16px;margin-bottom:16px}

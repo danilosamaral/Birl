@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { useStore } from "../store";
-import { GRUPOS_MUSCULARES } from "../seeds";
-import { novoId, agora, ROTULO_TIPO } from "../types";
-import type { Treino, TreinoExercicio, SeriePlano, TipoSerie, Exercicio } from "../types";
+import { PickerExercicio } from "../PickerExercicio";
+import { novoId, ROTULO_TIPO } from "../types";
+import type { Treino, TreinoExercicio, TipoSerie, Exercicio } from "../types";
 
 const TIPOS: TipoSerie[] = ["aquecimento", "ajuste", "trabalho"];
 
@@ -206,86 +206,5 @@ function EditorExercicio({
         </button>
       </div>
     </div>
-  );
-}
-
-function PickerExercicio({ onEscolher, onFechar }: { onEscolher(id: string): void; onFechar(): void }) {
-  const st = useStore();
-  const [busca, setBusca] = useState("");
-  const [criando, setCriando] = useState(false);
-  const [grupoNovo, setGrupoNovo] = useState(GRUPOS_MUSCULARES[0]);
-
-  const lista = useMemo(() => {
-    const q = busca.trim().toLowerCase();
-    return Object.values(st.exercicios)
-      .filter((e) => !e.deleted && !e.arquivado)
-      .filter((e) => !q || e.nome.toLowerCase().includes(q) || e.grupo.toLowerCase().includes(q))
-      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
-  }, [st.exercicios, busca]);
-
-  function criarNovo() {
-    const nome = busca.trim();
-    if (!nome) return;
-    const ex: Exercicio = { id: novoId(), nome, grupo: grupoNovo, origem: "proprio", updated_at: agora() };
-    st.salvarExercicio(ex);
-    onEscolher(ex.id);
-  }
-
-  return (
-    <dialog open style={{ position: "fixed", top: "8vh", zIndex: 60, margin: "0 auto", left: 0, right: 0 }}>
-      <div className="modal-corpo">
-        <h3>Adicionar exercício</h3>
-        <input
-          className="picker-busca"
-          value={busca}
-          onChange={(e) => {
-            setBusca(e.target.value);
-            setCriando(false);
-          }}
-          placeholder="Buscar por nome ou grupo muscular..."
-          autoFocus
-        />
-        {!criando ? (
-          <>
-            <div className="picker-lista">
-              {lista.map((e) => (
-                <button key={e.id} type="button" onClick={() => onEscolher(e.id)}>
-                  {e.nome}
-                  <small>{e.grupo}</small>
-                </button>
-              ))}
-              {lista.length === 0 && <div className="vazio">Nenhum exercício encontrado.</div>}
-            </div>
-            <div className="acoes" style={{ marginTop: 12 }}>
-              <button className="btn btn-pri" type="button" onClick={() => setCriando(true)} disabled={!busca.trim()}>
-                Criar "{busca.trim() || "..."}"
-              </button>
-              <button className="btn btn-sec" type="button" onClick={onFechar}>
-                Fechar
-              </button>
-            </div>
-          </>
-        ) : (
-          <>
-            <label className="form-linha">
-              <span>Grupo muscular de "{busca.trim()}"</span>
-              <select value={grupoNovo} onChange={(e) => setGrupoNovo(e.target.value)}>
-                {GRUPOS_MUSCULARES.map((g) => (
-                  <option key={g}>{g}</option>
-                ))}
-              </select>
-            </label>
-            <div className="acoes">
-              <button className="btn btn-pri" type="button" onClick={criarNovo}>
-                Criar e adicionar
-              </button>
-              <button className="btn btn-sec" type="button" onClick={() => setCriando(false)}>
-                Voltar
-              </button>
-            </div>
-          </>
-        )}
-      </div>
-    </dialog>
   );
 }
