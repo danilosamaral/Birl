@@ -1,6 +1,7 @@
 import { useRef, useState } from "react";
 import { useStore } from "../store";
 import { supa } from "../sync";
+import { BUILD_ID, useAtualizacao } from "../atualizacao";
 import { treinosVisiveis } from "../utils";
 
 export function Ajustes() {
@@ -8,6 +9,7 @@ export function Ajustes() {
   const treinos = treinosVisiveis(st.treinos);
   const [backupAberto, setBackupAberto] = useState(false);
   const [msgConvite, setMsgConvite] = useState("");
+  const atualizacao = useAtualizacao();
 
   async function sair() {
     const c = supa();
@@ -101,6 +103,29 @@ export function Ajustes() {
             Backup / Restaurar
           </button>
         </div>
+      </div>
+
+      <div className="card">
+        <h3>Versão do app</h3>
+        <p className="card-sub">
+          O app fica guardado no aparelho para funcionar offline, então uma versão nova só entra depois de baixada. Ele
+          procura sozinho toda vez que você volta pra ele; use o botão se quiser conferir agora.
+        </p>
+        <p className="card-sub" style={{ margin: "0 0 12px" }}>
+          Build instalado: <b className="mono-inline">{BUILD_ID}</b>
+        </p>
+        <div className="acoes">
+          {atualizacao.disponivel ? (
+            <button className="btn btn-pri" type="button" onClick={atualizacao.aplicar}>
+              Atualizar agora
+            </button>
+          ) : (
+            <button className="btn btn-sec" type="button" onClick={atualizacao.procurarAgora} disabled={atualizacao.procurando}>
+              {atualizacao.procurando ? "Procurando..." : "Procurar atualização"}
+            </button>
+          )}
+        </div>
+        {atualizacao.resumo && <p className="msg-aviso" style={{ color: "var(--green-soft)" }}>{atualizacao.resumo}</p>}
       </div>
 
       <div className="card">

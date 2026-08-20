@@ -2,7 +2,14 @@ import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import { VitePWA } from "vite-plugin-pwa";
 
+/** Identificação do build, mostrada em Ajustes para saber que versão o aparelho roda. */
+const COMMIT = (process.env.VERCEL_GIT_COMMIT_SHA ?? "").slice(0, 7);
+const BUILD_ID = [new Date().toISOString().slice(0, 16).replace("T", " ") + " UTC", COMMIT].filter(Boolean).join(" · ");
+
 export default defineConfig({
+  define: {
+    __BUILD_ID__: JSON.stringify(BUILD_ID),
+  },
   resolve: {
     alias: {
       html2canvas: "/src/stub-vazio.ts",
@@ -13,7 +20,12 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: "autoUpdate",
+      // "prompt" + registro próprio (src/atualizacao.ts): o script que o plugin
+      // injeta sozinho só chama `register()` — ele nunca procura versão nova
+      // enquanto o app está aberto nem recarrega quando ela chega, e uma PWA de
+      // iPhone/iPad que fica meses suspensa no multitarefa nunca via a mudança.
+      registerType: "prompt",
+      injectRegister: null,
       includeAssets: ["icon.png"],
       manifest: {
         name: "BIRL! — Plataforma de Treinos",

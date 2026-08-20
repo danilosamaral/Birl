@@ -8,6 +8,7 @@ import { Evolucao } from "./screens/Evolucao";
 import { Ajustes } from "./screens/Ajustes";
 import { Login, ModalNovaSenha } from "./screens/Login";
 import { DetalheExercicioModal } from "./detalhe";
+import { useAtualizacao } from "./atualizacao";
 import { TimerDescansoPill } from "./TimerDescanso";
 import { contarSeries } from "./utils";
 
@@ -24,11 +25,13 @@ export function App() {
 
   useEffect(() => {
     void useStore.getState().init();
+    useAtualizacao.getState().iniciar();
   }, []);
 
   if (st.authPronto && !st.usuario) {
     return (
       <>
+        <FaixaAtualizacao />
         <Login />
         <ModalNovaSenha />
       </>
@@ -101,6 +104,7 @@ export function App() {
         ))}
       </nav>
 
+      <FaixaAtualizacao />
       <AvisoSalvo />
       <GlosModal />
       <DetalheExercicioModal />
@@ -128,6 +132,21 @@ function ProgressoHoje() {
       <div className="barra">
         <i style={{ width: `${(feitas / total) * 100}%` }} />
       </div>
+    </div>
+  );
+}
+
+/** Versão nova baixada: a troca acontece no toque, nunca no meio de uma série. */
+function FaixaAtualizacao() {
+  const disponivel = useAtualizacao((s) => s.disponivel);
+  const aplicar = useAtualizacao((s) => s.aplicar);
+  if (!disponivel) return null;
+  return (
+    <div className="faixa-atualizar" role="status">
+      <span>Tem versão nova do BIRL!</span>
+      <button className="btn-mini laranja" type="button" onClick={aplicar}>
+        Atualizar
+      </button>
     </div>
   );
 }
