@@ -77,6 +77,14 @@ export interface Sessao {
    * de séries e é registrado com as mesmas chaves de `registros`.
    */
   extras?: TreinoExercicio[];
+  /**
+   * Ordem em que os exercícios foram de fato feitos no dia: ids de
+   * `TreinoExercicio` (do plano ou extras) na sequência em que cada um
+   * recebeu o primeiro ajuste ao vivo — mexeu nos números ou marcou uma série,
+   * entrou na fila. É a ordem real do dia, que não precisa bater com a do
+   * plano: dá pra pular, voltar depois e trocar por um extra.
+   */
+  ordemExecucao?: string[];
   /** timestamps de iniciar/encerrar treino (duração da sessão) */
   inicio?: string;
   fim?: string;
@@ -157,6 +165,12 @@ export function sessaoId(data: string, treinoId: string) {
 
 export function regKey(treinoExercicioId: string, serieIdx: number) {
   return `${treinoExercicioId}:${serieIdx}`;
+}
+
+/** Volta da chave de registro para o id do exercício (`"abc:2"` -> `"abc"`). */
+export function teIdDaChave(chave: string): string {
+  const i = chave.lastIndexOf(":");
+  return i < 0 ? chave : chave.slice(0, i);
 }
 
 /**

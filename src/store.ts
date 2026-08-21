@@ -8,7 +8,7 @@ import type { TreinoExercicio } from "./types";
 import { migrarLocal, migrarRemoto } from "./migracao";
 import { enfileirar, limparFila, setLogado, sincronizarTudo, supa, traduzErro, usuarioAtual, type Tabela } from "./sync";
 import type { Exercicio, Medida, Prefs, Programa, RegistroSerie, Sessao, Treino, Aval } from "./types";
-import { agora, extraId, novoId, seriesExtraPadrao, sessaoId } from "./types";
+import { agora, extraId, novoId, seriesExtraPadrao, sessaoId, teIdDaChave } from "./types";
 import { dataHoje, diaDaSemana, planoDoExercicio, treinosDoPrograma, treinosVisiveis } from "./utils";
 
 export type Aba = "hoje" | "treinos" | "biblioteca" | "evolucao" | "ajustes";
@@ -115,6 +115,17 @@ export const useStore = create<Estado>((set, get) => {
     sess.updated_at = agora();
     set({ sessoes: { ...get().sessoes, [sess.id]: sess } });
     persistir("sessoes", sess);
+  }
+
+  /**
+   * Registra a ordem real do dia: o exercício entra na fila na primeira vez
+   * que você mexe nele (números ou série marcada). Quem já está na fila
+   * mantém o lugar — voltar pra corrigir um peso não muda a ordem.
+   */
+  function registrarOrdem(sess: Sessao, chave: string) {
+    const teId = teIdDaChave(chave);
+    const ordem = sess.ordemExecucao ?? [];
+    if (!ordem.includes(teId)) sess.ordemExecucao = [...ordem, teId];
   }
 
   function treinoSugerido(data: string): string | null {
@@ -536,11 +547,13 @@ export const useStore = create<Estado>((set, get) => {
       sess.registros = { ...sess.registros };
       const atual = sess.registros[chave] ?? { sets: "", kg: "", reps: "", rir: "", done: false };
       sess.registros[chave] = { ...atual, [campo]: valor };
+      registrarOrdem(sess, chave);
       salvarSessao(sess);
     },
     setRegistroCompleto(chave, registro) {
       const sess = { ...get().sessaoAtiva() };
       sess.registros = { ...sess.registros, [chave]: registro };
+      registrarOrdem(sess, chave);
       salvarSessao(sess);
     },
     adicionarExtra(exercicioId) {
@@ -558,6 +571,7 @@ export const useStore = create<Estado>((set, get) => {
       sess.registros = Object.fromEntries(
         Object.entries(sess.registros).filter(([chave]) => !chave.startsWith(`${id}:`))
       );
+      if (sess.ordemExecucao) sess.ordemExecucao = sess.ordemExecucao.filter((x) => x !== id);
       salvarSessao(sess);
     },
     adicionarSerieExtra(id) {
@@ -621,7 +635,15 @@ export const useStore = create<Estado>((set, get) => {
       salvarSessao(sess);
     },
     limparDia() {
-      const sess = { ...get().sessaoAtiva(), registros: {}, extras: [], obs: "", aval: {}, deleted: true };
+      const sess = {
+        ...get().sessaoAtiva(),
+        registros: {},
+        extras: [],
+        ordemExecucao: [],
+        obs: "",
+        aval: {},
+        deleted: true,
+      };
       const sessoes = { ...get().sessoes };
       delete sessoes[sess.id];
       set({ sessoes });

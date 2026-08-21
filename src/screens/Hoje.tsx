@@ -17,6 +17,7 @@ import {
   extrasDaSessao,
   feitosDaLinha,
   formatarData,
+  posicoesDoDia,
   programasVisiveis,
   seriesDaLinha,
   sessoesDoTreino,
@@ -69,6 +70,8 @@ export function Hoje() {
   const treinoForaDoPrograma = !treinos.some((t) => t.id === treino.id);
 
   const itens = exerciciosDaSessao(treino, sess);
+  // ordem realmente seguida hoje — o 1º é o primeiro exercício em que você mexeu
+  const posicoes = posicoesDoDia(sess);
   const jaNoDia = new Set([...treino.exercicios, ...extrasDaSessao(sess)].map((te) => te.exercicioId));
 
   // exercício "da vez": o primeiro ainda com séries pendentes fica aberto
@@ -159,6 +162,7 @@ export function Hoje() {
           key={te.id}
           te={te}
           extra={extra}
+          posicao={posicoes[te.id]}
           sess={sess}
           historico={extra ? historicoGeral : historico}
           aberto={toggles[te.id] ?? i === daVezIdx}
@@ -243,13 +247,15 @@ export function Hoje() {
 }
 
 /**
- * Um exercício da sessão: o do plano do treino ou um extra do dia. O extra
- * ganha o selo, o botão de remover e a edição das linhas de série ali mesmo —
+ * Um exercício da sessão: o do plano do treino ou um extra do dia. O selo
+ * "1º", "2º"... marca em que posição ele entrou na ordem do dia. O extra ganha
+ * a tag própria, o botão de remover e a edição das linhas de série ali mesmo —
  * ele só existe neste dia, então não há editor de treino por trás.
  */
 function BlocoExercicio({
   te,
   extra,
+  posicao,
   sess,
   historico,
   aberto,
@@ -257,6 +263,8 @@ function BlocoExercicio({
 }: {
   te: TreinoExercicio;
   extra: boolean;
+  /** posição na ordem do dia (1 = primeiro feito); ausente = ainda não mexido */
+  posicao?: number;
   sess: Sessao;
   historico: Sessao[];
   aberto: boolean;
@@ -277,6 +285,11 @@ function BlocoExercicio({
           <span className="seta" aria-hidden="true">
             ›
           </span>
+          {posicao != null && (
+            <span className="ex-ordem" aria-label={`${posicao}º exercício feito neste dia`}>
+              {posicao}º
+            </span>
+          )}
           <span className="ex-nome">
             {ex ? ex.nome : "Exercício removido"}
             {extra && <span className="tag-extra">extra</span>}
