@@ -51,6 +51,35 @@ export function exerciciosDaSessao(treino: Treino, sessao: Sessao): Array<{ te: 
   ];
 }
 
+/** Tem algo registrado nesse exercício da sessão (números ou séries marcadas)? */
+export function temRegistro(sessao: Sessao, treinoExercicioId: string): boolean {
+  const prefixo = `${treinoExercicioId}:`;
+  for (const [chave, r] of Object.entries(sessao.registros)) {
+    if (!chave.startsWith(prefixo)) continue;
+    if (r.sets || r.kg || r.reps || r.rir || r.done || r.feitos?.some(Boolean)) return true;
+  }
+  return false;
+}
+
+/**
+ * A ordem realmente seguida no dia, do primeiro exercício ao último: ids de
+ * `TreinoExercicio` como o app foi anotando ao vivo. Quem ficou sem registro
+ * nenhum sai da fila (apagar os números de um exercício desfaz a posição
+ * dele). Sessões anteriores a este recurso não têm ordem gravada e devolvem
+ * lista vazia — o plano não serve de palpite, já que o ponto é justamente
+ * poder divergir dele.
+ */
+export function ordemDoDia(sessao: Sessao): string[] {
+  return (sessao.ordemExecucao ?? []).filter((id) => temRegistro(sessao, id));
+}
+
+/** Posição de cada exercício na ordem do dia (1 = primeiro feito). */
+export function posicoesDoDia(sessao: Sessao): Record<string, number> {
+  const pos: Record<string, number> = {};
+  ordemDoDia(sessao).forEach((id, i) => (pos[id] = i + 1));
+  return pos;
+}
+
 /**
  * Extras distintos que aparecem numa lista de sessões (o id é estável por
  * exercício, então o mesmo extra em dias diferentes vira um item só).

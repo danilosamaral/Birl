@@ -18,6 +18,7 @@ import {
   formatarDataCurta,
   formatarDelta,
   extrasDasSessoes,
+  ordemDoDia,
   pontosAval,
   pontosCarga,
   sessoesDoTreino,
@@ -42,6 +43,9 @@ const PAG_A = 297;
 const MARGEM = 16;
 const LARGURA = PAG_L - 2 * MARGEM;
 const MM_POR_PT = 0.3528;
+
+/** Quantos dias a seção de ordem lista, do mais recente para trás. */
+const DIAS_NO_RELATORIO = 30;
 
 const LARANJA: [number, number, number] = [241, 90, 34];
 const ESCURO: [number, number, number] = [17, 17, 17];
@@ -198,6 +202,42 @@ export function montarPdf(JsPDF: Construtor, d: DadosRelatorio): Blob {
       texto("Bem-estar (médias)", 10, "bold", ESCURO);
       texto(avalLinha, 8.5, "normal", CORPO);
       y += 4;
+    }
+  }
+
+  /* ---------- ordem dos exercícios em cada dia ---------- */
+  const comOrdem = todas.filter((s) => ordemDoDia(s).length > 0).reverse();
+  if (comOrdem.length > 0) {
+    secao("Ordem dos exercícios por dia");
+    texto(
+      "A sequência realmente seguida em cada sessão, na ordem em que os exercícios foram registrados no app — " +
+        "que não precisa ser a do plano do treino.",
+      8.5,
+      "normal",
+      CINZA
+    );
+    y += 2;
+
+    for (const s of comOrdem.slice(0, DIAS_NO_RELATORIO)) {
+      const t = d.treinos[s.treinoId];
+      const nomeDe = (te: { exercicioId: string }) => d.exercicios[te.exercicioId]?.nome ?? "Exercício removido";
+      const nomes = new Map<string, string>();
+      for (const te of t?.exercicios ?? []) nomes.set(te.id, nomeDe(te));
+      for (const te of s.extras ?? []) nomes.set(te.id, `${nomeDe(te)} (extra)`);
+
+      const ordem = ordemDoDia(s);
+      const feitos = new Set(ordem);
+      const naoFeitos = (t?.exercicios ?? []).filter((te) => !feitos.has(te.id)).map((te) => nomeDe(te));
+
+      espaco(24); // data, sequência e pulados na mesma página
+      texto(`${formatarData(s.data)} — ${t?.nome ?? "Treino removido"}`, 9.5, "bold", ESCURO);
+      texto(ordem.map((id, i) => `${i + 1}. ${nomes.get(id) ?? "Exercício removido"}`).join("   "), 8.5, "normal", CORPO);
+      if (naoFeitos.length > 0) texto(`Sem registro no dia: ${naoFeitos.join(", ")}`, 8, "normal", CINZA);
+      y += 3;
+    }
+
+    if (comOrdem.length > DIAS_NO_RELATORIO) {
+      texto(`(+ ${comOrdem.length - DIAS_NO_RELATORIO} sessão(ões) mais antigas, não listadas aqui.)`, 8, "normal", CINZA);
     }
   }
 

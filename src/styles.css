@@ -93,6 +93,7 @@ details.painel[open]>summary .seta{transform:rotate(90deg)}
 .ex-toggle .seta{color:var(--orange);font-size:1.05rem;transition:transform .2s;flex:0 0 auto}
 .exercicio:not(.fechado) .ex-toggle .seta{transform:rotate(90deg)}
 .ex-toggle .ex-nome{flex:1;min-width:0}
+.ex-ordem{flex:0 0 auto;display:inline-flex;align-items:center;justify-content:center;min-width:27px;padding:2px 7px;border-radius:99px;font-family:var(--head);font-weight:700;font-size:.7rem;letter-spacing:.03em;color:var(--orange-soft);background:rgba(241,90,34,.14);border:1px solid rgba(241,90,34,.45)}
 .ex-prog{font-family:var(--head);font-weight:600;font-size:.78rem;letter-spacing:.04em;color:var(--muted);white-space:nowrap;flex:0 0 auto}
 .ex-prog.ok{color:var(--green-soft)}
 .q-btn.info{width:28px;height:28px;font-size:.85rem;flex:0 0 auto;border-color:var(--orange-soft);color:var(--orange-soft)}
