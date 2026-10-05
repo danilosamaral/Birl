@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { useEffect, useRef, useState } from "react";
 
-/** Timer de descanso flutuante, disparado ao marcar uma série como feita. */
+/** Timer de descanso em faixa fixa acima da barra inferior, disparado ao marcar uma série como feita. */
 
 interface TimerState {
   fim: number | null;
@@ -16,8 +16,11 @@ export const useTimer = create<TimerState>((set, get) => ({
   total: 0,
   iniciar: (segundos) => set({ fim: Date.now() + segundos * 1000, total: segundos }),
   somar: (segundos) => {
-    const { fim } = get();
-    if (fim) set({ fim: fim + segundos * 1000, total: get().total + segundos });
+    const { fim, total } = get();
+    if (!fim) return;
+    // nunca deixa o fim antes de agora (−15 com 5s restantes encerra o descanso)
+    const novoFim = Math.max(Date.now(), fim + segundos * 1000);
+    set({ fim: novoFim, total: Math.max(1, total + segundos) });
   },
   parar: () => set({ fim: null, total: 0 }),
 }));
@@ -70,49 +73,69 @@ function apitar() {
   }
 }
 
-export function TimerDescansoPill() {
-  const { fim, somar, parar } = useTimer();
-  const [, força] = useState(0);
+export function TimerDescansoFaixa() {
+  const { fim, total, somar, parar } = useTimer();
+  const [, forca] = useState(0);
   const avisou = useRef(false);
 
   useEffect(() => {
-    if (!fim) {
-      avisou.current = false;
-      return;
-    }
-    const intervalo = setInterval(() => força((x) => x + 1), 250);
+    // um descanso novo (ou ajustado) volta a avisar quando acabar
+    avisou.current = false;
+    if (!fim) return;
+    const intervalo = setInterval(() => forca((x) => x + 1), 250);
     return () => clearInterval(intervalo);
   }, [fim]);
 
-  if (!fim) return null;
-  const restante = Math.ceil((fim - Date.now()) / 1000);
+  const restante = fim ? Math.ceil((fim - Date.now()) / 1000) : 0;
+  const acabou = !!fim && restante <= 0;
 
-  if (restante <= 0 && !avisou.current) {
+  // fim do descanso: bip + vibração (onde houver) e some sozinho depois de 8s
+  useEffect(() => {
+    if (!acabou || avisou.current) return;
     avisou.current = true;
     apitar();
     navigator.vibrate?.([200, 100, 200]);
-    setTimeout(parar, 8000);
-  }
+    const t = setTimeout(parar, 8000);
+    return () => clearTimeout(t);
+  }, [acabou, parar]);
 
-  const mm = Math.floor(Math.max(restante, 0) / 60);
-  const ss = String(Math.max(restante, 0) % 60).padStart(2, "0");
+  // o conteúdo da página ganha espaço embaixo para a faixa não cobrir nada
+  useEffect(() => {
+    document.documentElement.style.setProperty("--timer-h", fim ? "92px" : "0px");
+  }, [fim]);
+
+  if (!fim) return null;
+  const seg = Math.max(restante, 0);
+  const mm = Math.floor(seg / 60);
+  const ss = String(seg % 60).padStart(2, "0");
+  const pct = total > 0 ? Math.min(100, (seg / total) * 100) : 0;
 
   return (
-    <div className={`timer-pill${restante <= 0 ? " fim" : ""}`} role="timer" aria-live="polite">
-      <span className="rotulo">{restante <= 0 ? "Descanso encerrado — BIRL!" : "Descanso"}</span>
-      {restante > 0 && (
-        <b>
-          {mm}:{ss}
-        </b>
-      )}
-      {restante > 0 && (
-        <button type="button" onClick={() => somar(30)}>
-          +30s
+    <div className={`timer-faixa${acabou ? " fim" : ""}`} role="timer" aria-live="polite">
+      <div className="t">
+        <span className="tempo num">{acabou ? "BIRL!" : `${mm}:${ss}`}</span>
+        {!acabou && (
+          <>
+            <button type="button" onClick={() => somar(-15)} aria-label="Tirar 15 segundos">
+              −15
+            </button>
+            <button type="button" onClick={() => somar(15)} aria-label="Somar 15 segundos">
+              +15
+            </button>
+          </>
+        )}
+        <button type="button" onClick={parar}>
+          {acabou ? "Fechar" : "Pular"}
         </button>
-      )}
-      <button type="button" onClick={parar} aria-label="Fechar timer">
-        ✕
-      </button>
+      </div>
+      <div className="rodape">
+        {!acabou && (
+          <div className="trilho">
+            <i style={{ width: `${pct}%` }} />
+          </div>
+        )}
+        <span className="rotulo">{acabou ? "Descanso encerrado — próxima série" : "Descanso"}</span>
+      </div>
     </div>
   );
 }

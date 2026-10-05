@@ -1,12 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store";
-import { useGlos, ListaGlossario } from "../glos";
+import { useGlos } from "../glos";
+import { useGuia } from "../guia";
 import { useDetalheEx } from "../detalhe";
 import { prepararAudio, useTimer } from "../TimerDescanso";
 import { PickerExercicio } from "../PickerExercicio";
+import { Folha, confirmar } from "../folha";
+import { Icone, IconeTipo } from "../icones";
 import { parseIntervalo } from "../analise";
-import { ROTULO_TIPO, ATRIBUTOS, extraId, regKey } from "../types";
-import type { RegistroSerie, Sessao, TreinoExercicio } from "../types";
+import { formatarKg, sugerirCarga, ultimoTrabalho } from "../progressao";
+import { proximaEtapa } from "../trilha";
+import { ROTULO_TIPO, ATRIBUTOS, TECNICAS, extraId, regKey, rotuloDaNota } from "../types";
+import type { RegistroSerie, Sessao, TreinoExercicio, TipoSerie } from "../types";
 import { glosDaNota } from "../glossario";
 import {
   DIAS_SEMANA,
@@ -17,8 +22,11 @@ import {
   extrasDaSessao,
   feitosDaLinha,
   formatarData,
+  formatarDataCurta,
+  planoDoDia,
   posicoesDoDia,
   programasVisiveis,
+  semanaDoPrograma,
   seriesDaLinha,
   sessoesDoTreino,
   todasAsSessoes,
@@ -26,20 +34,35 @@ import {
   treinosVisiveis,
   duracaoMin,
   formatarDuracao,
-  ultimaCargaAntes,
   ultimoRegistroDaSerie,
 } from "../utils";
 
 const REG_VAZIO: RegistroSerie = { sets: "", kg: "", reps: "", rir: "", done: false };
+const NIVEL_TIPO: Record<TipoSerie, 1 | 2 | 3> = { aquecimento: 1, ajuste: 2, trabalho: 3 };
+const MESES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+
+/** "seg, 5 out" */
+function dataCurta(iso: string): string {
+  const [, m, d] = iso.split("-").map(Number);
+  return `${DIAS_SEMANA[diaDaSemana(iso)].slice(0, 3).toLowerCase()}, ${d} ${MESES[m - 1]}`;
+}
+
+/** "1 a 2 min" → "1–2 min"; "—" ou vazio → "" */
+function descanso(int: string): string {
+  const t = int.trim();
+  if (!t || t === "—" || parseIntervalo(t) === 0) return "";
+  return t.replace(/(\d+)\s*a\s*(\d+)/, "$1–$2");
+}
 
 export function Hoje() {
   const st = useStore();
-  const programas = programasVisiveis(st.programas);
+  const abrirGuia = useGuia((s) => s.abrir);
   const programa = st.programaAtivo();
   const treinos = programa ? treinosDoPrograma(programa, st.treinos) : treinosVisiveis(st.treinos);
-  const treino = st.treinoAtivoId ? st.treinos[st.treinoAtivoId] : null;
+  const treinoBase = st.treinoAtivoId ? st.treinos[st.treinoAtivoId] : null;
   const sess = st.sessaoAtiva();
   const [pickerExtra, setPickerExtra] = useState(false);
+  const [trocarDia, setTrocarDia] = useState(false);
 
   // exercícios retráteis: por padrão só o exercício "da vez" (primeiro com
   // séries pendentes) fica aberto; toques no cabeçalho sobrescrevem
@@ -49,11 +72,12 @@ export function Hoje() {
   const sugestaoId = programa?.divisaoSemana[diaDaSemana(st.dataAtiva)];
   const sugestao = sugestaoId ? st.treinos[sugestaoId] : null;
 
-  // histórico do plano: sessões deste treino. Histórico dos extras: todas as
-  // sessões — o mesmo extra pode ter sido feito em outro dia/treino.
+  // histórico do plano: sessões deste treino (pré-carrega cada linha).
+  // Histórico geral: todas as sessões (extras e a sugestão de carga, que vale
+  // para o mesmo exercício em qualquer programa).
   const historico = useMemo(
-    () => (treino ? sessoesDoTreino(st.sessoes, treino.id) : []),
-    [st.sessoes, treino?.id]
+    () => (treinoBase ? sessoesDoTreino(st.sessoes, treinoBase.id) : []),
+    [st.sessoes, treinoBase?.id]
   );
   const historicoGeral = useMemo(() => todasAsSessoes(st.sessoes), [st.sessoes]);
 
@@ -62,100 +86,107 @@ export function Hoje() {
       <div className="vazio">
         {programa
           ? `O programa "${programa.nome}" ainda não tem treinos — adicione na aba Treinos.`
-          : "Nenhum treino cadastrado. Crie o primeiro na aba Treinos."}
+          : "Nenhum treino cadastrado. Escolha um programa pronto na aba Treinos."}
       </div>
     );
   }
-  if (!treino) return null;
+  if (!treinoBase) return null;
+  const treino = planoDoDia(treinoBase, programa, st.sessoes, st.dataAtiva);
   const treinoForaDoPrograma = !treinos.some((t) => t.id === treino.id);
 
   const itens = exerciciosDaSessao(treino, sess);
-  // ordem realmente seguida hoje — o 1º é o primeiro exercício em que você mexeu
   const posicoes = posicoesDoDia(sess);
   const jaNoDia = new Set([...treino.exercicios, ...extrasDaSessao(sess)].map((te) => te.exercicioId));
-
-  // exercício "da vez": o primeiro ainda com séries pendentes fica aberto
   const daVezIdx = itens.findIndex(({ te }) => {
     const c = contarSeriesExercicio(te, sess);
     return c.total === 0 || c.feitas < c.total;
   });
 
+  const preparo = ["Aquecimento geral 5–10 min (esteira, bike, escada)", ...(treino.preparo ?? []).filter((l) => l.trim())];
+  const feitosPreparo = new Set(sess.preparo ?? []);
+  const semanaSed = programa?.sedentario && programa.treinoIds.includes(treino.id) ? semanaDoPrograma(programa, st.sessoes, st.dataAtiva) : null;
+  const etapa = programa ? proximaEtapa(programa, st.programas, st.sessoes, st.dataAtiva) : null;
+  const ehHoje = st.dataAtiva === dataHoje();
+
   return (
     <>
-      {programas.length > 0 && (
-        <div className="prog-barra">
-          <label htmlFor="sel-programa">Programa</label>
-          <select id="sel-programa" value={programa?.id ?? ""} onChange={(e) => st.setProgramaAtivo(e.target.value || null)}>
-            {programas.map((p) => (
-              <option key={p.id} value={p.id}>
-                {p.nome}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
       <nav className="abas" aria-label="Selecionar treino">
-        {treinos.map((t) => (
-          <button
-            key={t.id}
-            className="aba"
-            type="button"
-            aria-selected={t.id === treino.id}
-            onClick={() => st.setTreinoAtivo(t.id)}
-          >
-            {t.nome.replace(/^Treino /i, "")}
-          </button>
-        ))}
+        {treinos.map((t) => {
+          const letra = t.nome.replace(/^Treino /i, "");
+          return (
+            <button
+              key={t.id}
+              className={`aba${letra.length > 2 ? " texto" : ""}`}
+              type="button"
+              aria-selected={t.id === treino.id}
+              onClick={() => st.setTreinoAtivo(t.id)}
+            >
+              {letra}
+            </button>
+          );
+        })}
         {treinoForaDoPrograma && (
-          <button className="aba" type="button" aria-selected="true">
+          <button className="aba texto" type="button" aria-selected="true">
             {treino.nome.replace(/^Treino /i, "")}
           </button>
         )}
       </nav>
 
-      <div style={{ padding: "0 0 8px" }}>
-        <div className="controle-data">
-          <label htmlFor="data">Data do treino</label>
-          <input type="date" id="data" value={st.dataAtiva} onChange={(e) => st.setData(e.target.value || dataHoje())} />
-          <button className="btn-hoje" type="button" onClick={() => st.setData(dataHoje())}>
-            Hoje
-          </button>
-        </div>
-        <div className="sugestao-dia">
-          {DIAS_SEMANA[diaDaSemana(st.dataAtiva)]}: <b>{sugestao ? sugestao.nome : "descanso"}</b>
-          {programa ? ` na divisão de "${programa.nome}"` : ""}
-        </div>
-        <BlocoDuracao />
-      </div>
-
       {st.migradas > 0 && (
-        <div className="banner-ok">
-          ✓ {st.migradas} sessão(ões) do app antigo foram migradas para a plataforma nova. Nada foi perdido.
-        </div>
+        <div className="banner-ok">{st.migradas} sessão(ões) do app antigo foram migradas para a plataforma nova. Nada foi perdido.</div>
       )}
 
-      <details className="painel">
-        <summary>
-          Recomendações e glossário <span className="seta">›</span>
-        </summary>
-        <div className="painel-corpo">
-          <ul className="reco">
-            <li>
-              <b>Aquecimento:</b> ~30% da carga máxima, longe da falha.
-            </li>
-            <li>
-              <b>Ajuste:</b> carga considerável, ainda longe da falha. Serve pra sentir o dia.
-            </li>
-            <li>
-              <b>Série de trabalho:</b> é a que conta. Vá até a falha dentro da faixa de reps.
-            </li>
-            <li>
-              <b>Progressão:</b> a cada semana, mais 1–2 reps, um pouco mais de carga, ou menos RIR.
-            </li>
-          </ul>
-          <ListaGlossario />
+      <section className="dia-card" aria-label="Seu dia">
+        <div className="dia-topo">
+          <span className="rotulo">
+            {sugestao ? `${DIAS_SEMANA[diaDaSemana(st.dataAtiva)]} é dia de ${sugestao.nome.replace(/^Treino /i, "")}` : `${DIAS_SEMANA[diaDaSemana(st.dataAtiva)]}: descanso na divisão`}
+          </span>
+          <button className="chip" type="button" onClick={() => setTrocarDia(true)} aria-label="Trocar data ou programa">
+            {ehHoje ? "Hoje" : dataCurta(st.dataAtiva)}
+            <Icone nome="abaixo" pequeno />
+          </button>
         </div>
-      </details>
+        {programa && <div className="dia-sub">{programa.nome}</div>}
+        {semanaSed != null && (
+          <div className="lembrete">
+            Semana {semanaSed} da adaptação:{" "}
+            {semanaSed >= 3 ? "agora são as 3 séries normais." : `${semanaSed} série${semanaSed > 1 ? "s" : ""} por exercício.`}
+          </div>
+        )}
+        {programa?.lembrete && <div className="lembrete">{programa.lembrete}</div>}
+
+        <span className="rotulo" style={{ marginTop: 6 }}>
+          Preparo
+        </span>
+        {preparo.map((p, i) => (
+          <button
+            key={i}
+            type="button"
+            className={`preparo-item${feitosPreparo.has(i) ? " ok" : ""}`}
+            aria-pressed={feitosPreparo.has(i)}
+            onClick={() => st.alternarPreparo(i)}
+          >
+            <span className={`caixa${feitosPreparo.has(i) ? " ok" : ""}`}>{feitosPreparo.has(i) && <Icone nome="check" pequeno />}</span>
+            <span>{p}</span>
+          </button>
+        ))}
+        <BlocoDuracao />
+        <button className="link" type="button" onClick={abrirGuia}>
+          <Icone nome="livro" pequeno />
+          Guia do método
+        </button>
+        {etapa && (
+          <div className="banner-dica" style={{ margin: "4px 0 0" }}>
+            <Icone nome="trilha" pequeno />
+            <span>
+              {etapa.texto} <b>Próxima etapa: {etapa.proxima.nome}.</b>{" "}
+              <button className="link" type="button" style={{ padding: 0, minHeight: 0 }} onClick={() => st.setTab("treinos")}>
+                Ver na trilha
+              </button>
+            </span>
+          </div>
+        )}
+      </section>
 
       {itens.map(({ te, extra }, i) => (
         <BlocoExercicio
@@ -165,21 +196,18 @@ export function Hoje() {
           posicao={posicoes[te.id]}
           sess={sess}
           historico={extra ? historicoGeral : historico}
+          historicoGeral={historicoGeral}
           aberto={toggles[te.id] ?? i === daVezIdx}
           onAlternar={() => setToggles((t) => ({ ...t, [te.id]: !(t[te.id] ?? i === daVezIdx) }))}
         />
       ))}
 
       <div className="add-extra">
-        <p>
-          Fez algo fora do {treino.nome} (a esteira, uma máquina que estava livre)? Acrescente só neste dia — o plano do
-          treino continua como está.
-        </p>
-        <div className="acoes">
-          <button className="btn btn-sec" type="button" onClick={() => setPickerExtra(true)}>
-            + Exercício fora do treino
-          </button>
-        </div>
+        <p>Fez algo fora do {treino.nome}? Acrescente só neste dia — o plano do treino continua como está.</p>
+        <button className="btn btn-sec" type="button" style={{ width: "100%" }} onClick={() => setPickerExtra(true)}>
+          <Icone nome="mais" pequeno />
+          Exercício fora do treino
+        </button>
       </div>
 
       {pickerExtra && (
@@ -189,7 +217,6 @@ export function Hoje() {
           jaEscolhidos={jaNoDia}
           onEscolher={(id) => {
             st.adicionarExtra(id);
-            // o extra entra aberto, mesmo com exercícios do plano ainda pendentes
             setToggles((t) => ({ ...t, [extraId(id)]: true }));
             setPickerExtra(false);
           }}
@@ -197,26 +224,26 @@ export function Hoje() {
         />
       )}
 
+      {trocarDia && <FolhaTrocarDia aoFechar={() => setTrocarDia(false)} />}
+
       <div className="aval-card">
         <h3>Como você estava hoje?</h3>
-        <p className="aval-sub">Escala de 0 (nada) a 10 (no máximo). Entra no relatório e na tela de Evolução.</p>
+        <p className="aval-sub">De 0 (nada) a 10 (no máximo). Entra no relatório e na Evolução.</p>
         {ATRIBUTOS.map(([attr, rotulo]) => {
           const v = sess.aval[attr];
           return (
-            <div className="aval-item" key={attr}>
+            <div className="aval-item" key={attr} role="group" aria-label={`${rotulo} de 0 a 10`}>
               <div className="aval-top">
                 <span>{rotulo}</span>
                 <b>{v ?? "—"}</b>
               </div>
-              <input
-                type="range"
-                min={0}
-                max={10}
-                step={1}
-                value={v ?? 5}
-                onChange={(e) => st.setAval(attr, Number(e.target.value))}
-                aria-label={`${rotulo} de 0 a 10`}
-              />
+              <div className="notas">
+                {Array.from({ length: 11 }, (_, n) => (
+                  <button key={n} type="button" aria-pressed={v === n} onClick={() => st.setAval(attr, n)}>
+                    {n}
+                  </button>
+                ))}
+              </div>
             </div>
           );
         })}
@@ -225,6 +252,7 @@ export function Hoje() {
       <div className="obs-card">
         <h3>Observações do dia</h3>
         <textarea
+          id="obs-dia"
           value={sess.obs}
           placeholder="Como foi o treino, sensações, ajustes pra próxima vez..."
           onChange={(e) => st.setObs(e.target.value)}
@@ -235,10 +263,16 @@ export function Hoje() {
         <button
           className="btn btn-perigo"
           type="button"
-          onClick={() => {
-            if (confirm(`Apagar os registros de ${treino.nome} em ${formatarData(st.dataAtiva)}?`)) st.limparDia();
+          onClick={async () => {
+            const ok = await confirmar({
+              titulo: "Limpar este dia?",
+              texto: `Apaga todos os números, séries marcadas, avaliação e observações de ${treino.nome} em ${formatarData(st.dataAtiva)}.`,
+              acao: "Limpar dia",
+            });
+            if (ok) st.limparDia();
           }}
         >
+          <Icone nome="lixo" pequeno />
           Limpar este dia
         </button>
       </div>
@@ -246,11 +280,56 @@ export function Hoje() {
   );
 }
 
+/** Trocar a data do treino (hoje, ontem, outra) e o programa ativo. */
+function FolhaTrocarDia({ aoFechar }: { aoFechar(): void }) {
+  const st = useStore();
+  const programas = programasVisiveis(st.programas);
+  const programa = st.programaAtivo();
+  const hoje = dataHoje();
+  const ontem = (() => {
+    const d = new Date(`${hoje}T12:00:00`);
+    d.setDate(d.getDate() - 1);
+    return d.toISOString().slice(0, 10);
+  })();
+  return (
+    <Folha titulo="Dia e programa" aoFechar={aoFechar}>
+      <span className="rotulo">Data do treino</span>
+      <div className="segmentado" style={{ margin: "8px 0" }}>
+        <button type="button" aria-pressed={st.dataAtiva === hoje} onClick={() => st.setData(hoje)}>
+          Hoje
+        </button>
+        <button type="button" aria-pressed={st.dataAtiva === ontem} onClick={() => st.setData(ontem)}>
+          Ontem
+        </button>
+      </div>
+      <label className="form-linha">
+        <span>Outra data</span>
+        <input type="date" id="data-treino" value={st.dataAtiva} onChange={(e) => st.setData(e.target.value || hoje)} />
+      </label>
+      {programas.length > 0 && (
+        <label className="form-linha">
+          <span>Programa</span>
+          <select id="sel-programa" value={programa?.id ?? ""} onChange={(e) => st.setProgramaAtivo(e.target.value || null)}>
+            {programas.map((p) => (
+              <option key={p.id} value={p.id}>
+                {p.nome}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      <div className="acoes">
+        <button className="btn btn-pri" type="button" onClick={aoFechar}>
+          Pronto
+        </button>
+      </div>
+    </Folha>
+  );
+}
+
 /**
  * Um exercício da sessão: o do plano do treino ou um extra do dia. O selo
- * "1º", "2º"... marca em que posição ele entrou na ordem do dia. O extra ganha
- * a tag própria, o botão de remover e a edição das linhas de série ali mesmo —
- * ele só existe neste dia, então não há editor de treino por trás.
+ * "1º", "2º"... marca em que posição ele entrou na ordem do dia.
  */
 function BlocoExercicio({
   te,
@@ -258,15 +337,16 @@ function BlocoExercicio({
   posicao,
   sess,
   historico,
+  historicoGeral,
   aberto,
   onAlternar,
 }: {
   te: TreinoExercicio;
   extra: boolean;
-  /** posição na ordem do dia (1 = primeiro feito); ausente = ainda não mexido */
   posicao?: number;
   sess: Sessao;
   historico: Sessao[];
+  historicoGeral: Sessao[];
   aberto: boolean;
   onAlternar(): void;
 }) {
@@ -274,17 +354,14 @@ function BlocoExercicio({
   const abrirGlos = useGlos((s) => s.abrir);
   const abrirDetalhe = useDetalheEx((s) => s.abrir);
   const ex = st.exercicios[te.exercicioId];
-  const ultima = ultimaCargaAntes(historico, te, st.dataAtiva);
+  const ultimo = ultimoTrabalho(te.exercicioId, historicoGeral, st.treinos, st.dataAtiva);
   const contEx = contarSeriesExercicio(te, sess);
   const completo = contEx.total > 0 && contEx.feitas >= contEx.total;
 
   return (
-    <section className={`exercicio${aberto ? "" : " fechado"}${extra ? " extra" : ""}`}>
+    <section className={`exercicio${aberto ? " aberto" : ""}${extra ? " extra" : ""}`}>
       <div className="ex-topo">
         <button className="ex-toggle" type="button" aria-expanded={aberto} onClick={onAlternar}>
-          <span className="seta" aria-hidden="true">
-            ›
-          </span>
           {posicao != null && (
             <span className="ex-ordem" aria-label={`${posicao}º exercício feito neste dia`}>
               {posicao}º
@@ -295,33 +372,43 @@ function BlocoExercicio({
             {extra && <span className="tag-extra">extra</span>}
           </span>
           <span className={`ex-prog${completo ? " ok" : ""}`}>
-            {completo ? "✓ " : ""}
+            {completo && <Icone nome="check" pequeno />}
             {contEx.feitas}/{contEx.total}
           </span>
         </button>
         {ex && (
-          <button className="q-btn info" type="button" onClick={() => abrirDetalhe(ex.id)} aria-label={`Detalhes de ${ex.nome}`}>
-            ⓘ
+          <button className="btn-icone" type="button" onClick={() => abrirDetalhe(ex.id)} aria-label={`Como fazer ${ex.nome}`}>
+            <Icone nome="info" />
           </button>
         )}
       </div>
-      {aberto && (ex?.grupo || te.aviso || ultima || extra) && (
+      {aberto && (
         <div className="ex-cabec">
-          {ex?.grupo && <div className="ex-grupo">{ex.grupo}</div>}
-          {extra && <div className="ex-extra-nota">Fora do plano do treino — vale só para este dia.</div>}
-          {te.aviso && <div className="ex-aviso">⚠ {te.aviso}</div>}
-          {ultima && (
-            <div className="ex-ultima">
-              Da última vez ({formatarData(ultima.date)}): {ultima.kg} kg
-              {ultima.reps ? ` × ${ultima.reps}` : ""}
-              {ultima.rir !== "" ? ` · RIR ${ultima.rir}` : ""}
+          <div className="ex-apoio">
+            {ex?.grupo}
+            {ultimo ? ` · da última vez ${formatarKg(ultimo.kg)} kg × ${ultimo.reps} (${formatarDataCurta(ultimo.data)})` : ""}
+          </div>
+          {(te.tecnicas?.length ?? 0) > 0 && (
+            <div className="tags">
+              {te.tecnicas!.map((k) => (
+                <button key={k} className="tag" type="button" onClick={() => abrirGlos(TECNICAS[k]?.glos ?? k)}>
+                  {TECNICAS[k]?.rotulo ?? k}
+                </button>
+              ))}
+            </div>
+          )}
+          {extra && <div className="ex-apoio">Fora do plano do treino — vale só para este dia.</div>}
+          {te.aviso && (
+            <div className="ex-aviso">
+              <Icone nome="aviso" pequeno />
+              <span>{te.aviso}</span>
             </div>
           )}
         </div>
       )}
       {aberto && (
         <div className="ex-series">
-          {te.series.map((s, si) => (
+          {te.series.map((_, si) => (
             <LinhaSerie
               key={si}
               te={te}
@@ -330,23 +417,29 @@ function BlocoExercicio({
               sess={sess}
               historico={historico}
               nomeExercicio={ex?.nome ?? ""}
+              ultimo={ultimo}
             />
           ))}
           {extra && (
-            <div className="acoes" style={{ marginTop: 12 }}>
+            <div className="acoes" style={{ margin: "0 0 12px" }}>
               <button className="btn btn-sec" type="button" onClick={() => st.adicionarSerieExtra(te.id)}>
-                + Série
+                <Icone nome="mais" pequeno />
+                Série
               </button>
               <button
                 className="btn btn-perigo"
                 type="button"
-                onClick={() => {
+                onClick={async () => {
                   const nome = ex?.nome ?? "este exercício";
-                  if (confirm(`Tirar "${nome}" deste dia? Os números registrados nele serão apagados.`))
-                    st.removerExtra(te.id);
+                  const ok = await confirmar({
+                    titulo: "Tirar do dia?",
+                    texto: `"${nome}" sai deste dia e os números registrados nele são apagados.`,
+                    acao: "Tirar do dia",
+                  });
+                  if (ok) st.removerExtra(te.id);
                 }}
               >
-                Remover do dia
+                Tirar do dia
               </button>
             </div>
           )}
@@ -356,7 +449,7 @@ function BlocoExercicio({
   );
 }
 
-/** Uma linha de série: prescrição, botões de feito e os números registrados. */
+/** Uma linha de série: prescrição, sugestão de carga, números e os botões de série feita. */
 function LinhaSerie({
   te,
   serieIdx,
@@ -364,6 +457,7 @@ function LinhaSerie({
   sess,
   historico,
   nomeExercicio,
+  ultimo,
 }: {
   te: TreinoExercicio;
   serieIdx: number;
@@ -371,6 +465,7 @@ function LinhaSerie({
   sess: Sessao;
   historico: Sessao[];
   nomeExercicio: string;
+  ultimo: ReturnType<typeof ultimoTrabalho>;
 }) {
   const st = useStore();
   const abrirGlos = useGlos((s) => s.abrir);
@@ -380,22 +475,25 @@ function LinhaSerie({
   const registroVazio =
     !salvo || (!salvo.sets && !salvo.kg && !salvo.reps && !salvo.rir && !salvo.done && !salvo.feitos?.some(Boolean));
   // pré-carrega os números da última sessão como sugestão editável;
-  // eles só são gravados quando você marca Feito ou ajusta um campo
-  const sugestao = registroVazio ? ultimoRegistroDaSerie(historico, chave, st.dataAtiva) : null;
+  // eles só são gravados quando você marca Feita ou ajusta um campo
+  const preCarga = registroVazio ? ultimoRegistroDaSerie(historico, chave, st.dataAtiva) : null;
   const r = salvo ?? REG_VAZIO;
-  const mostra = sugestao ?? r;
+  const mostra = preCarga ?? r;
   const n = seriesDaLinha(s.presc, mostra.sets);
   const feitos = feitosDaLinha(salvo, n);
   const feita = feitos.length > 0 && feitos.every(Boolean);
+  const ehRM = /×\s*RM/i.test(s.presc);
+  const sugestao = s.tipo === "trabalho" && !ehRM ? sugerirCarga(s.presc, ultimo, nomeExercicio) : null;
+
   const mudar = (campo: "sets" | "kg" | "reps" | "rir", valor: string) => {
-    if (sugestao) st.setRegistroCompleto(chave, { ...sugestao, done: false, feitos: [], [campo]: valor });
+    if (preCarga) st.setRegistroCompleto(chave, { ...preCarga, done: false, feitos: [], [campo]: valor });
     else st.setRegistro(chave, campo, valor);
   };
   // marca/desmarca uma série individual; toda série marcada inicia o descanso
   const alternarFeito = (i: number) => {
     const novos = feitos.slice();
     novos[i] = !novos[i];
-    const base = sugestao ? { ...sugestao } : { ...r };
+    const base = preCarga ? { ...preCarga } : { ...r };
     st.setRegistroCompleto(chave, { ...base, feitos: novos, done: novos.every(Boolean) });
     if (novos[i] && st.prefs.timerDescanso !== false) {
       prepararAudio();
@@ -403,9 +501,11 @@ function LinhaSerie({
       if (segundos > 0) useTimer.getState().iniciar(segundos);
     }
   };
-  const setsHint = s.presc.split("×")[0].trim();
   const glosNota = glosDaNota(s.nota);
-  const clsInput = sugestao ? "sugerida" : "";
+  const clsInput = preCarga ? "sugerida" : "";
+  const desc = descanso(s.int);
+  const faixa = s.presc.split("×")[1]?.trim().replace(/(\d+)\s*a\s*(\d+)/, "$1–$2") ?? "";
+  const rirValores = ["0", "1", "2", "3+"];
 
   return (
     <div className={`serie${feita ? " feita" : ""}`}>
@@ -414,28 +514,117 @@ function LinhaSerie({
           className={`badge ${s.tipo}`}
           type="button"
           onClick={() => abrirGlos(s.tipo)}
-          aria-label={`O que é série de ${ROTULO_TIPO[s.tipo].toLowerCase()}`}
+          aria-label={`Série de ${ROTULO_TIPO[s.tipo].toLowerCase()}: o que é`}
         >
+          <IconeTipo nivel={NIVEL_TIPO[s.tipo]} />
           {ROTULO_TIPO[s.tipo]}
-          <i className="q" aria-hidden="true">
-            ?
-          </i>
         </button>
         <span className="presc">
-          <b>{s.presc}</b> · intervalo {s.int}
+          <b>{s.presc.replace(/(\d+)\s*a\s*(\d+)/, "$1–$2").replace(/×\s*RM/i, "× até a falha")}</b>
+          {desc ? ` · ${desc}` : ""}
         </span>
-        {sugestao && <span className="tag-sugestao">última sessão</span>}
         {extra && te.series.length > 1 && (
           <button
-            className="btn-mini perigo remove-linha"
+            className="btn-icone"
             type="button"
             onClick={() => st.removerSerieExtra(te.id, serieIdx)}
             aria-label={`Remover a ${serieIdx + 1}ª linha de série`}
           >
-            ✕
+            <Icone nome="fechar" pequeno />
           </button>
         )}
       </div>
+
+      {(s.nota || ehRM) && (
+        <div className="nota-linha">
+          {s.nota && (
+            <button className="tag" type="button" onClick={() => glosNota && abrirGlos(glosNota)}>
+              {rotuloDaNota(s.nota)}
+            </button>
+          )}
+          {ehRM && (
+            <button className="tag" type="button" onClick={() => abrirGlos("rm")}>
+              RM: máximo de repetições
+            </button>
+          )}
+        </div>
+      )}
+
+      {sugestao && (
+        <div className="banner-dica" style={{ margin: 0 }}>
+          <Icone nome={sugestao.direcao === "subir" ? "subir" : sugestao.direcao === "baixar" ? "descer" : "igual"} pequeno />
+          <span>
+            Na última ({formatarDataCurta(sugestao.ultimo.data)}) você fez {formatarKg(sugestao.ultimo.kg)} kg × {sugestao.ultimo.reps}
+            {sugestao.direcao === "subir" && (
+              <>
+                , acima de {sugestao.faixa[1]}. <b>Suba para {formatarKg(sugestao.kg)} kg.</b>
+              </>
+            )}
+            {sugestao.direcao === "baixar" && (
+              <>
+                , abaixo de {sugestao.faixa[0]}. <b>Baixe para {formatarKg(sugestao.kg)} kg.</b>
+              </>
+            )}
+            {sugestao.direcao === "manter" && (
+              <>
+                , dentro da faixa. <b>Mantenha {formatarKg(sugestao.kg)} kg e busque +1 rep.</b>
+              </>
+            )}
+          </span>
+        </div>
+      )}
+
+      <div className="serie-inputs">
+        <label className="campo">
+          <span>Carga (kg)</span>
+          <input
+            type="text"
+            inputMode="decimal"
+            className={clsInput}
+            value={mostra.kg}
+            placeholder="kg"
+            onChange={(e) => mudar("kg", e.target.value)}
+            aria-label={`Carga em quilos de ${nomeExercicio}`}
+          />
+        </label>
+        <label className="campo">
+          <span>Reps</span>
+          <input
+            type="text"
+            inputMode="numeric"
+            className={clsInput}
+            value={mostra.reps}
+            placeholder={ehRM ? "máx" : faixa}
+            onChange={(e) => mudar("reps", e.target.value)}
+            aria-label={`Repetições feitas de ${nomeExercicio}`}
+          />
+        </label>
+      </div>
+      {preCarga && <span className="tag-sugestao">Números da última sessão — mude ou marque Feita para registrar</span>}
+
+      {s.tipo === "trabalho" && (
+        <div className="campo">
+          <span>
+            Reps na reserva (RIR){" "}
+            <button className="link" type="button" style={{ padding: 0, minHeight: 0, fontSize: 12 }} onClick={() => abrirGlos("rir")}>
+              o que é?
+            </button>
+          </span>
+          <div className="rir">
+            {rirValores.map((v) => (
+              <button
+                key={v}
+                type="button"
+                aria-pressed={mostra.rir === v || (v === "3+" && Number(mostra.rir) >= 3)}
+                onClick={() => mudar("rir", mostra.rir === v ? "" : v)}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       <div className="feitos-linha">
         {feitos.map((f, i) => (
           <button
@@ -444,86 +633,13 @@ function LinhaSerie({
             className={`feito-btn${f ? " on" : ""}`}
             aria-pressed={f}
             onClick={() => alternarFeito(i)}
-            aria-label={
-              n > 1 ? `Marcar ${i + 1}ª série de ${ROTULO_TIPO[s.tipo].toLowerCase()} como feita` : "Marcar como feita"
-            }
+            aria-label={n > 1 ? `${i + 1}ª série de ${ROTULO_TIPO[s.tipo].toLowerCase()} feita` : "Série feita"}
           >
-            ✓ {n > 1 ? `${i + 1}ª` : "Feito"}
+            {f && <Icone nome="check" pequeno />}
+            {n > 1 ? `${i + 1}ª` : f ? "Feita" : "Marcar feita"}
           </button>
         ))}
       </div>
-      <div className="serie-inputs">
-        <div className="campo">
-          <span>
-            Séries
-            <button className="q-btn" type="button" onClick={() => abrirGlos("series")} aria-label="O que registrar em séries">
-              ?
-            </button>
-          </span>
-          <input
-            type="text"
-            inputMode="numeric"
-            className={clsInput}
-            value={mostra.sets}
-            placeholder={setsHint}
-            onChange={(e) => mudar("sets", e.target.value)}
-            aria-label={`Quantas séries você fez de ${nomeExercicio}`}
-          />
-        </div>
-        <div className="campo">
-          <span>Carga (kg)</span>
-          <input
-            type="text"
-            inputMode="decimal"
-            className={clsInput}
-            value={mostra.kg}
-            placeholder="0"
-            onChange={(e) => mudar("kg", e.target.value)}
-            aria-label={`Carga em quilos de ${nomeExercicio}`}
-          />
-        </div>
-        <div className="campo">
-          <span>Reps</span>
-          <input
-            type="text"
-            inputMode="numeric"
-            className={clsInput}
-            value={mostra.reps}
-            placeholder="0"
-            onChange={(e) => mudar("reps", e.target.value)}
-            aria-label={`Repetições feitas de ${nomeExercicio}`}
-          />
-        </div>
-        {s.tipo === "trabalho" && (
-          <div className="campo">
-            <span>
-              RIR
-              <button className="q-btn" type="button" onClick={() => abrirGlos("rir")} aria-label="O que é RIR">
-                ?
-              </button>
-            </span>
-            <input
-              type="text"
-              inputMode="numeric"
-              className={clsInput}
-              value={mostra.rir}
-              placeholder="0"
-              onChange={(e) => mudar("rir", e.target.value)}
-              aria-label={`Repetições em reserva de ${nomeExercicio}`}
-            />
-          </div>
-        )}
-      </div>
-      {s.nota && (
-        <p className="nota">
-          <span>{s.nota}</span>
-          {glosNota && (
-            <button className="q-btn claro" type="button" onClick={() => abrirGlos(glosNota)} aria-label="O que significa">
-              ?
-            </button>
-          )}
-        </p>
-      )}
     </div>
   );
 }
@@ -543,9 +659,10 @@ function BlocoDuracao() {
 
   if (!sess.inicio) {
     return (
-      <div className="bloco-duracao">
+      <div className="duracao">
         <button className="btn btn-pri" type="button" onClick={st.iniciarTreino}>
-          ▶ Iniciar treino
+          <Icone nome="play" pequeno />
+          Iniciar treino
         </button>
       </div>
     );
@@ -557,13 +674,14 @@ function BlocoDuracao() {
     const mm = String(Math.floor((seg % 3600) / 60)).padStart(h ? 2 : 1, "0");
     const ss = String(seg % 60).padStart(2, "0");
     return (
-      <div className="bloco-duracao">
+      <div className="duracao">
         <span className="tempo" role="timer">
-          ⏱ {h ? `${h}:` : ""}
+          {h ? `${h}:` : ""}
           {mm}:{ss}
         </span>
         <button className="btn btn-sec" type="button" onClick={st.encerrarTreino}>
-          ■ Encerrar treino
+          <Icone nome="stop" pequeno />
+          Encerrar treino
         </button>
       </div>
     );
@@ -571,8 +689,8 @@ function BlocoDuracao() {
 
   const min = duracaoMin(sess);
   return (
-    <div className="bloco-duracao">
-      <span className="tempo encerrado">✓ Treino encerrado · {min != null ? formatarDuracao(Math.max(min, 1)) : "—"}</span>
+    <div className="duracao">
+      <span className="tempo encerrado">Treino encerrado · {min != null ? formatarDuracao(Math.max(min, 1)) : "—"}</span>
       <button className="btn-mini" type="button" onClick={st.retomarTreino}>
         Retomar
       </button>

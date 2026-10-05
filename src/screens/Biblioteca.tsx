@@ -1,5 +1,7 @@
 import { useMemo, useState } from "react";
 import { useStore } from "../store";
+import { Icone } from "../icones";
+import { useGuia } from "../guia";
 import { useDetalheEx } from "../detalhe";
 import { GRUPOS_MUSCULARES } from "../seeds";
 import { novoId, agora } from "../types";
@@ -28,6 +30,8 @@ export function Biblioteca() {
       .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
   }, [todos, busca, grupo]);
 
+  const abrirGuia = useGuia((s) => s.abrir);
+
   function criarNovo() {
     const ex: Exercicio = {
       id: novoId(),
@@ -55,8 +59,11 @@ export function Biblioteca() {
       </div>
 
       <div className="acoes" style={{ margin: "12px 0" }}>
-        <button className="btn btn-pri" type="button" onClick={criarNovo}>
-          + Novo exercício
+        <button className="btn btn-sec" type="button" onClick={abrirGuia}>
+          <Icone nome="livro" pequeno /> Guia do método
+        </button>
+        <button className="btn btn-sec" type="button" onClick={criarNovo}>
+          <Icone nome="mais" pequeno /> Novo exercício
         </button>
       </div>
 
@@ -69,7 +76,9 @@ export function Biblioteca() {
           {e.midia?.imagens?.[0] ? (
             <img className="bib-thumb" src={e.midia.imagens[0]} alt="" loading="lazy" />
           ) : (
-            <span className="bib-thumb vazia">🏋️</span>
+            <span className="bib-thumb vazia">
+              <Icone nome="hoje" />
+            </span>
           )}
           <span className="bib-info">
             <span className="bib-nome">{e.nome}</span>
@@ -79,7 +88,9 @@ export function Biblioteca() {
               {e.origem === "proprio" ? " · seu" : ""}
             </span>
           </span>
-          <span className="bib-seta">›</span>
+          <span className="bib-seta">
+            <Icone nome="seta" />
+          </span>
         </button>
       ))}
       {lista.length === 0 && <div className="vazio">Nenhum exercício encontrado — crie um novo acima.</div>}

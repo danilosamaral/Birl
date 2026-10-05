@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import { useStore } from "./store";
 import { GRUPOS_MUSCULARES } from "./seeds";
 import type { Exercicio } from "./types";
+import { Icone } from "./icones";
 
 /** Modal global de detalhe/edição de exercício (aberto da Biblioteca, do Hoje e do editor). */
 
@@ -41,6 +42,12 @@ export function redimensionarImagem(file: File): Promise<string> {
     };
     img.src = url;
   });
+}
+
+/** Busca pública no YouTube pela execução do exercício (sem link de conteúdo pago). */
+export function linkBuscaYoutube(nome: string): string {
+  const termo = `${nome.replace(/\s*\(.*?\)\s*/g, " ").trim()} execução`;
+  return `https://www.youtube.com/results?search_query=${encodeURIComponent(termo)}`;
 }
 
 export function linkVideoValido(url: string): boolean {
@@ -90,13 +97,23 @@ function VisaoExercicio({ ex }: { ex: Exercicio }) {
       {imagens.length === 0 && passos.length === 0 && (
         <p>Sem imagens ou instruções ainda — toque em Editar para adicionar foto de postura, passos ou um link de vídeo.</p>
       )}
-      {ex.midia?.video && (
-        <div className="acoes" style={{ marginBottom: 10 }}>
-          <a className="btn btn-sec" style={{ textAlign: "center", textDecoration: "none", lineHeight: "22px" }} href={ex.midia.video} target="_blank" rel="noreferrer">
-            ▶ Ver vídeo
+      <div className="acoes" style={{ marginBottom: 10 }}>
+        {ex.midia?.video && (
+          <a className="btn btn-sec" style={{ textDecoration: "none" }} href={ex.midia.video} target="_blank" rel="noreferrer">
+            <Icone nome="video" pequeno /> Ver vídeo
           </a>
-        </div>
-      )}
+        )}
+        <a
+          className="btn btn-sec"
+          style={{ textDecoration: "none" }}
+          href={linkBuscaYoutube(ex.nome)}
+          target="_blank"
+          rel="noreferrer"
+        >
+          <Icone nome="video" pequeno /> Ver no YouTube
+        </a>
+      </div>
+      <p style={{ fontSize: 13 }}>"Ver no YouTube" abre a busca pública pela execução do exercício.</p>
       <div className="acoes">
         <button className="btn btn-sec" type="button" onClick={() => abrir(ex.id, true)}>
           Editar
@@ -205,8 +222,9 @@ function FormExercicio({ ex, aoFechar }: { ex: Exercicio; aoFechar(): void }) {
                   onClick={() =>
                     setRasc((r) => ({ ...r, midia: { ...r.midia, imagens: r.midia!.imagens!.filter((_, j) => j !== i) } }))
                   }
+                  aria-label={`Remover imagem ${i + 1}`}
                 >
-                  ✕
+                  <Icone nome="fechar" pequeno />
                 </button>
               </div>
             ))}

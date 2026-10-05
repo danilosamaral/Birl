@@ -210,7 +210,7 @@ function VisaoGeral() {
         </div>
         <div className="linha">
           <span>Sequência de semanas treinando</span>
-          <b>{streak > 0 ? `${streak} semana(s) 🔥` : "—"}</b>
+          <b>{streak > 0 ? `${streak} semana(s)` : "—"}</b>
         </div>
         {ader && (
           <div className="linha">
@@ -270,7 +270,7 @@ function VisaoGeral() {
           </div>
         ) : (
           <div className="hm-legenda">
-            <span className="hm-dia" /> sem treino <span className="hm-dia" style={{ background: "#f15a22", borderColor: "#f15a22" }} /> treino
+            <span className="hm-dia" /> sem treino <span className="hm-dia" style={{ background: "var(--brand)", borderColor: "var(--brand)" }} /> treino
           </div>
         )}
       </div>
@@ -285,7 +285,7 @@ function VisaoGeral() {
         </div>
       )}
 
-      {todas.length === 0 && <div className="vazio">Nenhuma sessão registrada ainda. Bora pro primeiro treino! 💪</div>}
+      {todas.length === 0 && <div className="vazio">Nenhuma sessão registrada ainda. Bora pro primeiro treino!</div>}
     </>
   );
 }
@@ -402,7 +402,7 @@ function CardsEvolucao({ treino, metrica }: { treino: Treino; metrica: Metrica }
         <div className="evo-stat">
           {prs.kg && (
             <span className="item">
-              🏆 PR: <b>{prs.kg.v} kg</b> ({formatarDataCurta(prs.kg.date)})
+              Recorde: <b>{prs.kg.v} kg</b> ({formatarDataCurta(prs.kg.date)})
             </span>
           )}
           {prs.e1rm && (
@@ -444,7 +444,7 @@ function CardsEvolucao({ treino, metrica }: { treino: Treino; metrica: Metrica }
                     {rotulo} — média <b>{media}</b>/10
                   </span>
                 </div>
-                <Grafico pts={pts} min={0} max={10} linha="#f0a93b" area="rgba(240,169,59,.12)" ponto="#f5853a" h={70} />
+                <Grafico pts={pts} min={0} max={10} linha="var(--serie-ajuste)" area="var(--serie-ajuste-bg)" ponto="var(--serie-ajuste)" h={70} />
               </div>
             );
           })}

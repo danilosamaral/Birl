@@ -3,6 +3,8 @@ import { useStore } from "../store";
 import { supa } from "../sync";
 import { BUILD_ID, useAtualizacao } from "../atualizacao";
 import { treinosVisiveis } from "../utils";
+import { MODOS, PALETAS, useAparencia } from "../aparencia";
+import { confirmar } from "../folha";
 
 export function Ajustes() {
   const st = useStore();
@@ -13,8 +15,14 @@ export function Ajustes() {
 
   async function sair() {
     const c = supa();
-    if (c && confirm("Sair da conta neste aparelho? Seus dados continuam salvos e voltam quando você entrar de novo."))
-      await c.auth.signOut();
+    if (!c) return;
+    const ok = await confirmar({
+      titulo: "Sair da conta?",
+      texto: "Sai da conta neste aparelho. Seus dados continuam salvos e voltam quando você entrar de novo.",
+      acao: "Sair da conta",
+      perigo: false,
+    });
+    if (ok) await c.auth.signOut();
   }
 
   async function copiarLink() {
@@ -43,6 +51,8 @@ export function Ajustes() {
         </button>
       </div>
 
+      <Aparencia />
+
       <div className="card">
         <h3>Sincronização</h3>
         <p className="card-sub">
@@ -57,7 +67,7 @@ export function Ajustes() {
         <p className="card-sub" style={{ margin: "10px 0 0" }}>
           {st.ultimoSync ? `Última sincronização: ${new Date(st.ultimoSync).toLocaleString("pt-BR")}` : "Ainda não sincronizado nesta sessão."}
         </p>
-        {st.syncResumo && <p className="msg-aviso" style={{ color: "var(--green-soft)" }}>{st.syncResumo}</p>}
+        {st.syncResumo && <p className="msg-aviso" style={{ color: "var(--success)" }}>{st.syncResumo}</p>}
       </div>
 
       <div className="card">
@@ -71,26 +81,27 @@ export function Ajustes() {
             Compartilhar link
           </button>
         </div>
-        {msgConvite && <p className="msg-aviso" style={{ color: "var(--green-soft)" }}>{msgConvite}</p>}
+        {msgConvite && <p className="msg-aviso" style={{ color: "var(--success)" }}>{msgConvite}</p>}
       </div>
 
       <div className="card">
         <h3>Timer de descanso</h3>
         <p className="card-sub">Ao marcar uma série como feita, inicia a contagem do intervalo prescrito.</p>
-        <label className="check" style={{ marginLeft: 0 }}>
+        <label className="check-linha">
           <input
             type="checkbox"
+            id="timer-auto"
             checked={st.prefs.timerDescanso !== false}
             onChange={(e) => st.setTimerDescanso(e.target.checked)}
-          />{" "}
-          Iniciar automaticamente
+          />
+          <span>Iniciar automaticamente</span>
         </label>
       </div>
 
       <div className="card">
         <h3>Divisão da semana</h3>
         <p className="card-sub">
-          A divisão agora pertence a cada <b>programa</b> de treino — configure na aba Treinos, em Programas → Editar. O
+          A divisão agora pertence a cada <b>programa</b> de treino — configure na aba Treinos, em Programas › Editar. O
           programa ativo é o que guia a tela Hoje.
         </p>
       </div>
@@ -125,14 +136,14 @@ export function Ajustes() {
             </button>
           )}
         </div>
-        {atualizacao.resumo && <p className="msg-aviso" style={{ color: "var(--green-soft)" }}>{atualizacao.resumo}</p>}
+        {atualizacao.resumo && <p className="msg-aviso" style={{ color: "var(--success)" }}>{atualizacao.resumo}</p>}
       </div>
 
       <div className="card">
         <h3>Versão anterior</h3>
         <p className="card-sub">
           A ficha antiga (somente treinos A–D) continua disponível como referência em{" "}
-          <a href="/legacy/index.html" style={{ color: "var(--orange-soft)" }}>
+          <a href="/legacy/index.html" style={{ color: "var(--brand-ink)" }}>
             /legacy
           </a>
           . Os registros feitos lá não entram mais aqui automaticamente.
@@ -193,5 +204,37 @@ function ModalBackup({ onFechar }: { onFechar(): void }) {
         <p className="msg-aviso">{msg}</p>
       </div>
     </dialog>
+  );
+}
+
+/** Paleta (3 opções) e modo claro/escuro — guardados neste aparelho. */
+function Aparencia() {
+  const { paleta, modo, setPaleta, setModo } = useAparencia();
+  return (
+    <div className="card">
+      <h3>Aparência</h3>
+      <p className="card-sub">Vale para este aparelho. "Automático" segue o claro/escuro do celular.</p>
+      <span className="rotulo">Cores</span>
+      <div className="opcoes-paleta" style={{ margin: "8px 0 14px" }}>
+        {PALETAS.map((p) => (
+          <button key={p.id} type="button" className="opcao-paleta" aria-pressed={paleta === p.id} onClick={() => setPaleta(p.id)}>
+            <span className="cores" aria-hidden="true">
+              {p.amostra.map((c) => (
+                <i key={c} style={{ background: c }} />
+              ))}
+            </span>
+            <span>{p.nome}</span>
+          </button>
+        ))}
+      </div>
+      <span className="rotulo">Modo</span>
+      <div className="segmentado" style={{ marginTop: 8 }}>
+        {MODOS.map((m) => (
+          <button key={m.id} type="button" aria-pressed={modo === m.id} onClick={() => setModo(m.id)}>
+            {m.nome}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }

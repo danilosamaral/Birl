@@ -91,6 +91,7 @@ interface Estado {
   retomarTreino(): void;
   setAval(attr: keyof Aval, valor: number): void;
   setObs(obs: string): void;
+  alternarPreparo(i: number): void;
   limparDia(): void;
 
   exportarBackup(): string;
@@ -658,6 +659,14 @@ export const useStore = create<Estado>((set, get) => {
       sess.aval = { ...sess.aval, [attr]: valor };
       salvarSessao(sess);
     },
+    alternarPreparo(i) {
+      const sess = { ...get().sessaoAtiva() };
+      const atual = new Set(sess.preparo ?? []);
+      if (atual.has(i)) atual.delete(i);
+      else atual.add(i);
+      sess.preparo = [...atual].sort((a, b) => a - b);
+      salvarSessao(sess);
+    },
     setObs(obs) {
       const sess = { ...get().sessaoAtiva(), obs };
       salvarSessao(sess);
@@ -668,6 +677,7 @@ export const useStore = create<Estado>((set, get) => {
         registros: {},
         extras: [],
         ordemExecucao: [],
+        preparo: [],
         obs: "",
         aval: {},
         deleted: true,

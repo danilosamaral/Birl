@@ -89,6 +89,8 @@ export interface Sessao {
    * plano: dá pra pular, voltar depois e trocar por um extra.
    */
   ordemExecucao?: string[];
+  /** itens do preparo do dia já ticados (0 = aquecimento geral, 1… = os do treino) */
+  preparo?: number[];
   /** timestamps de iniciar/encerrar treino (duração da sessão) */
   inicio?: string;
   fim?: string;

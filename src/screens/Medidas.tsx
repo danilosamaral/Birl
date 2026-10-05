@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import { useStore } from "../store";
+import { confirmar } from "../folha";
 import { Grafico } from "../chart";
 import { CAMPOS_MEDIDA, agora } from "../types";
 import type { Medida } from "../types";
@@ -166,9 +167,9 @@ function GraficosMedidas({ lista }: { lista: Medida[] }) {
           <div className="evo-card" key={chave}>
             <div className="evo-nome">
               {rotulo}{" "}
-              <small style={{ color: "var(--muted)", fontWeight: 400 }}>({unidade})</small>
+              <small style={{ color: "var(--ink-2)", fontWeight: 400 }}>({unidade})</small>
             </div>
-            <Grafico pts={pts} linha="#1aa15a" area="rgba(26,161,90,.12)" ponto="#f15a22" />
+            <Grafico pts={pts} linha="var(--success)" area="var(--info-bg)" ponto="var(--brand)" />
             <div className="evo-stat">
               <span className="item">
                 Atual:{" "}
@@ -214,7 +215,11 @@ function HistoricoMedidas({ lista, aoEditar }: { lista: Medida[]; aoEditar(data:
               className="btn-mini perigo"
               type="button"
               onClick={() => {
-                if (confirm(`Excluir as medidas de ${formatarData(m.data)}?`)) st.excluirMedida(m.id);
+                void confirmar({
+                  titulo: "Excluir medidas?",
+                  texto: `Apaga as medidas de ${formatarData(m.data)}.`,
+                  acao: "Excluir medidas",
+                }).then((ok) => ok && st.excluirMedida(m.id));
               }}
             >
               Excluir
