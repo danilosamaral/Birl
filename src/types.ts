@@ -31,6 +31,8 @@ export interface TreinoExercicio {
   id: string;
   exercicioId: string;
   aviso?: string;
+  /** técnicas do exercício inteiro (ex.: "pico2s"), mostradas como etiquetas */
+  tecnicas?: string[];
   series: SeriePlano[];
 }
 
@@ -40,6 +42,8 @@ export interface Treino {
   foco: string;
   ordem: number;
   arquivado?: boolean;
+  /** preparo do dia (mobilidade/alongamento), mostrado em Hoje como lista de ticar */
+  preparo?: string[];
   exercicios: TreinoExercicio[];
   updated_at: string;
   deleted?: boolean;
@@ -85,6 +89,8 @@ export interface Sessao {
    * plano: dá pra pular, voltar depois e trocar por um extra.
    */
   ordemExecucao?: string[];
+  /** itens do preparo do dia já ticados (0 = aquecimento geral, 1… = os do treino) */
+  preparo?: number[];
   /** timestamps de iniciar/encerrar treino (duração da sessão) */
   inicio?: string;
   fim?: string;
@@ -100,6 +106,12 @@ export interface Programa {
   treinoIds: string[];
   /** dia da semana (0=domingo) -> treinoId ou null (descanso) */
   divisaoSemana: Record<number, string | null>;
+  /** template do catálogo de onde veio (liga o programa à trilha) */
+  catalogoId?: string;
+  /** lembrete do objetivo da etapa, mostrado no topo de Hoje */
+  lembrete?: string;
+  /** adaptação para sedentários: 1 série na semana 1, 2 na semana 2, normal depois */
+  sedentario?: boolean;
   arquivado?: boolean;
   updated_at: string;
   deleted?: boolean;
@@ -186,8 +198,22 @@ export function extraId(exercicioId: string) {
 export function seriesExtraPadrao(): SeriePlano[] {
   return [
     { tipo: "ajuste", presc: "1 × 4 a 6", int: "1 a 2 min" },
-    { tipo: "trabalho", presc: "1 × 6 a 10", int: "—" },
+    { tipo: "trabalho", presc: "1 × 6 a 10", int: "2 a 3 min" },
   ];
+}
+
+/** Técnicas que valem para o exercício todo (etiquetas). */
+export const TECNICAS: Record<string, { rotulo: string; glos: string }> = {
+  pico2s: { rotulo: "Pico 2s", glos: "pico" },
+};
+
+/** Etiqueta curta para a nota de técnica de uma série ("+ 1 drop set" → "Drop set"). */
+export function rotuloDaNota(nota: string): string {
+  let n = nota.replace(/^\+\s*/, "").trim();
+  if (/rest pause/i.test(n)) n = n.replace(/^(\d+)\s*rest pause de 10\s*s(egundos)?/i, "Rest pause $1×10s");
+  else if (/drop/i.test(n)) n = n.replace(/^(\d+)\s*drops?( set)?/i, (_m, q) => (q === "1" ? "Drop set" : `${q} drops`)).replace(/^drop[- ]set/i, "Drop set");
+  else if (/parcia/i.test(n)) n = "Parciais +10 após a falha";
+  return n.charAt(0).toUpperCase() + n.slice(1);
 }
 
 export function agora() {

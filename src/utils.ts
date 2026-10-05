@@ -199,8 +199,8 @@ export function programasVisiveis(programas: Record<string, Programa>): Programa
 }
 
 /** Paleta qualitativa para diferenciar programas (calendário, volume, legenda). */
-export const CORES_PROGRAMA = ["#f15a22", "#1aa15a", "#3b82f6", "#a855f7", "#f0a93b", "#14b8a6", "#ec4899", "#84cc16"];
-export const COR_SEM_PROGRAMA = "#6b6b70";
+export const CORES_PROGRAMA = [1, 2, 3, 4, 5, 6, 7, 8].map((i) => `var(--cat-${i})`);
+export const COR_SEM_PROGRAMA = "var(--ink-3)";
 
 /** Mapa treinoId -> programaId (primeiro programa não-excluído que contém o treino). */
 export function mapaTreinoPrograma(programas: Record<string, Programa>): Record<string, string> {
@@ -296,4 +296,45 @@ export function formatarDuracao(min: number): string {
 export function formatarDelta(delta: number): string {
   const s = delta > 0 ? "+" : "";
   return `${s}${delta.toFixed(delta % 1 ? 1 : 0)}`;
+}
+
+/* ---------- adaptação para sedentários (P3) ---------- */
+
+/**
+ * Semana do programa (1, 2, 3…) numa data, contando a partir do primeiro
+ * treino feito em qualquer treino dele. Sem treino ainda = semana 1.
+ */
+export function semanaDoPrograma(programa: Programa, sessoes: Record<string, Sessao>, data: string): number {
+  const ids = new Set(programa.treinoIds);
+  let inicio: string | null = null;
+  for (const s of Object.values(sessoes)) {
+    if (s.deleted || !ids.has(s.treinoId)) continue;
+    const feito = s.inicio || Object.values(s.registros).some((r) => r.done || r.feitos?.some(Boolean) || r.kg || r.reps);
+    if (feito && (!inicio || s.data < inicio)) inicio = s.data;
+  }
+  if (!inicio || data < inicio) return 1;
+  const dias = Math.round((Date.parse(`${data}T12:00:00`) - Date.parse(`${inicio}T12:00:00`)) / 86400000);
+  return Math.floor(dias / 7) + 1;
+}
+
+/**
+ * Plano do treino para o dia: igual ao cadastrado, exceto na adaptação para
+ * sedentários (1 série na semana 1, 2 na semana 2, o normal a partir da 3ª).
+ */
+export function planoDoDia(treino: Treino, programa: Programa | null, sessoes: Record<string, Sessao>, data: string): Treino {
+  if (!programa?.sedentario || !programa.treinoIds.includes(treino.id)) return treino;
+  const semana = semanaDoPrograma(programa, sessoes, data);
+  if (semana >= 3) return treino;
+  return {
+    ...treino,
+    exercicios: treino.exercicios.map((te) => ({
+      ...te,
+      series: te.series.map((s) => {
+        const m = s.presc.match(/^\s*(\d+)(?:\s*-\s*(\d+))?\s*×(.*)$/);
+        if (!m) return s;
+        const n = Number(m[2] ?? m[1]);
+        return n > semana ? { ...s, presc: `${semana} ×${m[3]}` } : s;
+      }),
+    })),
+  };
 }

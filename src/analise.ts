@@ -178,6 +178,6 @@ export function parseIntervalo(int: string): number {
   const nums = (int.match(/\d+(?:[.,]\d+)?/g) ?? []).map((n) => parseFloat(n.replace(",", ".")));
   if (nums.length === 0) return 0;
   const media = nums.reduce((a, b) => a + b, 0) / nums.length;
-  const emSegundos = /\bs(eg)?\b/i.test(int) && !/min/i.test(int);
+  const emSegundos = /\b(s|seg|segs|segundos?)\b/i.test(int) && !/min/i.test(int);
   return Math.round(emSegundos ? media : media * 60);
 }

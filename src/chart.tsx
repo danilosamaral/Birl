@@ -21,10 +21,10 @@ export function Grafico({
   w = 320,
   h = 96,
   pad = 16,
-  linha = "#f15a22",
-  area = "rgba(241,90,34,.12)",
-  ponto = "#1aa15a",
-  texto = "#9a9a9e",
+  linha = "var(--brand)",
+  area = "var(--serie-trabalho-bg)",
+  ponto = "var(--success)",
+  texto = "var(--ink-3)",
   min,
   max,
   coresPontos,
@@ -55,24 +55,24 @@ export function Grafico({
 
   return (
     <svg viewBox={`0 0 ${w} ${h}`} width="100%" height={h} role="img" aria-label="Gráfico de evolução">
-      {areaD && <path d={areaD} fill={area} />}
-      <path d={d} fill="none" stroke={linha} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
+      {areaD && <path d={areaD} style={{ fill: area }} />}
+      <path d={d} style={{ fill: "none", stroke: linha }} strokeWidth={2.5} strokeLinecap="round" strokeLinejoin="round" />
       {pts.map((p, i) => (
-        <circle key={i} cx={X(i).toFixed(1)} cy={Y(p.v).toFixed(1)} r={coresPontos ? 4.5 : 3.5} fill={coresPontos?.[i] ?? ponto} />
+        <circle key={i} cx={X(i).toFixed(1)} cy={Y(p.v).toFixed(1)} r={coresPontos ? 4.5 : 3.5} style={{ fill: coresPontos?.[i] ?? ponto }} />
       ))}
-      <text x={X(0).toFixed(1)} y={(Y(f.v) - 7).toFixed(1)} fill={texto} fontSize={11} textAnchor="middle">
+      <text x={X(0).toFixed(1)} y={(Y(f.v) - 7).toFixed(1)} style={{ fill: texto }} fontSize={12} textAnchor="middle">
         {f.v}
       </text>
       {pts.length > 1 && (
-        <text x={X(pts.length - 1).toFixed(1)} y={(Y(l.v) - 7).toFixed(1)} fill={texto} fontSize={11} textAnchor="middle">
+        <text x={X(pts.length - 1).toFixed(1)} y={(Y(l.v) - 7).toFixed(1)} style={{ fill: texto }} fontSize={12} textAnchor="middle">
           {l.v}
         </text>
       )}
-      <text x={X(0).toFixed(1)} y={h - 3} fill={texto} fontSize={9} textAnchor="middle">
+      <text x={X(0).toFixed(1)} y={h - 3} style={{ fill: texto }} fontSize={12} textAnchor="middle">
         {formatarDataCurta(f.date)}
       </text>
       {pts.length > 1 && (
-        <text x={X(pts.length - 1).toFixed(1)} y={h - 3} fill={texto} fontSize={9} textAnchor="middle">
+        <text x={X(pts.length - 1).toFixed(1)} y={h - 3} style={{ fill: texto }} fontSize={12} textAnchor="middle">
           {formatarDataCurta(l.date)}
         </text>
       )}

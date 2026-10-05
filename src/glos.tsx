@@ -1,6 +1,6 @@
 import { create } from "zustand";
-import { useEffect, useRef } from "react";
 import { GLOSSARIO, GLOSSARIO_ORDEM } from "./glossario";
+import { Folha } from "./folha";
 
 interface GlosState {
   termo: string | null;
@@ -16,28 +16,17 @@ export const useGlos = create<GlosState>((set) => ({
 
 export function GlosModal() {
   const { termo, fechar } = useGlos();
-  const ref = useRef<HTMLDialogElement>(null);
   const g = termo ? GLOSSARIO[termo] : null;
-
-  useEffect(() => {
-    const d = ref.current;
-    if (!d) return;
-    if (g && !d.open) d.showModal();
-    if (!g && d.open) d.close();
-  }, [g]);
-
+  if (!g) return null;
   return (
-    <dialog ref={ref} onClose={fechar}>
-      <div className="modal-corpo">
-        <h3>{g?.t}</h3>
-        <p style={{ color: "#d9d9dc", fontSize: ".95rem" }}>{g?.d}</p>
-        <div className="acoes">
-          <button className="btn btn-sec" type="button" onClick={fechar}>
-            Entendi
-          </button>
-        </div>
+    <Folha titulo={g.t} aoFechar={fechar}>
+      <p>{g.d}</p>
+      <div className="acoes">
+        <button className="btn btn-sec" type="button" onClick={fechar}>
+          Entendi
+        </button>
       </div>
-    </dialog>
+    </Folha>
   );
 }
 
@@ -49,7 +38,7 @@ export function ListaGlossario() {
       <div className="glos-lista">
         {GLOSSARIO_ORDEM.map((k) => (
           <button key={k} type="button" onClick={() => abrir(k)}>
-            {GLOSSARIO[k].t.split(" — ")[0].replace('Campo "Séries"', "Séries")}
+            {GLOSSARIO[k].t.split(" — ")[0]}
           </button>
         ))}
       </div>

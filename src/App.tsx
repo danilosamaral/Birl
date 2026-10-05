@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useStore, type Aba } from "./store";
 import { GlosModal } from "./glos";
+import { GuiaFolha } from "./guia";
 import { Hoje } from "./screens/Hoje";
 import { Treinos } from "./screens/Treinos";
 import { Biblioteca } from "./screens/Biblioteca";
@@ -9,19 +10,36 @@ import { Ajustes } from "./screens/Ajustes";
 import { Login, ModalNovaSenha } from "./screens/Login";
 import { DetalheExercicioModal } from "./detalhe";
 import { useAtualizacao } from "./atualizacao";
-import { TimerDescansoPill } from "./TimerDescanso";
-import { contarSeries } from "./utils";
+import { TimerDescansoFaixa } from "./TimerDescanso";
+import { ConfirmSheet } from "./folha";
+import { Icone, type NomeIcone } from "./icones";
+import { useAparencia } from "./aparencia";
+import { contarSeries, planoDoDia } from "./utils";
 
-const TABS: Array<{ id: Aba; rotulo: string; ic: string }> = [
-  { id: "hoje", rotulo: "Hoje", ic: "🏋️" },
-  { id: "treinos", rotulo: "Treinos", ic: "📋" },
-  { id: "biblioteca", rotulo: "Exercícios", ic: "📚" },
-  { id: "evolucao", rotulo: "Evolução", ic: "📈" },
-  { id: "ajustes", rotulo: "Ajustes", ic: "⚙️" },
+const TABS: Array<{ id: Aba; rotulo: string; ic: NomeIcone }> = [
+  { id: "hoje", rotulo: "Hoje", ic: "hoje" },
+  { id: "treinos", rotulo: "Treinos", ic: "treinos" },
+  { id: "biblioteca", rotulo: "Exercícios", ic: "exercicios" },
+  { id: "evolucao", rotulo: "Evolução", ic: "evolucao" },
+  { id: "ajustes", rotulo: "Ajustes", ic: "ajustes" },
 ];
+
+/** Cabeçalho encolhe depois de rolar um pouco: mais tela para o exercício. */
+function useRolou(limite = 48) {
+  const [rolou, setRolou] = useState(false);
+  useEffect(() => {
+    const f = () => setRolou(window.scrollY > limite);
+    f();
+    window.addEventListener("scroll", f, { passive: true });
+    return () => window.removeEventListener("scroll", f);
+  }, [limite]);
+  return rolou;
+}
 
 export function App() {
   const st = useStore();
+  useAparencia(); // aplica a paleta/modo escolhidos
+  const rolou = useRolou();
 
   useEffect(() => {
     void useStore.getState().init();
@@ -42,10 +60,9 @@ export function App() {
     return (
       <header className="topo">
         <div className="marca">
-          <span>BIRL</span>
-          <span className="ponto">!</span>
+          BIRL<span className="ponto">!</span>
         </div>
-        <h1 className="titulo">Carregando...</h1>
+        <h1 className="titulo">Carregando…</h1>
       </header>
     );
   }
@@ -74,13 +91,15 @@ export function App() {
 
   return (
     <>
-      <header className="topo">
+      <header className={`topo${rolou ? " compacto" : ""}`}>
         <div className="marca">
-          <span>BIRL</span>
-          <span className="ponto">!</span>
+          BIRL<span className="ponto">!</span>
         </div>
-        <h1 className="titulo">{titulo}</h1>
-        <div className="sub-treino">{subtitulo}</div>
+        <div className="topo-linha">
+          <h1 className="titulo">{titulo}</h1>
+          <AvisoSalvo />
+        </div>
+        {subtitulo && <div className="sub-treino">{subtitulo}</div>}
         {st.tab === "hoje" && <ProgressoHoje />}
       </header>
 
@@ -96,42 +115,39 @@ export function App() {
       <nav className="tabbar" aria-label="Navegação">
         {TABS.map((t) => (
           <button key={t.id} type="button" aria-selected={st.tab === t.id} onClick={() => st.setTab(t.id)}>
-            <span className="ic" aria-hidden="true">
-              {t.ic}
-            </span>
+            <Icone nome={t.ic} />
             {t.rotulo}
           </button>
         ))}
       </nav>
 
       <FaixaAtualizacao />
-      <AvisoSalvo />
       <GlosModal />
+      <GuiaFolha />
       <DetalheExercicioModal />
-      <TimerDescansoPill />
+      <TimerDescansoFaixa />
+      <ConfirmSheet />
       <ModalNovaSenha />
     </>
   );
 }
 
-/** Barra "Séries concluídas" fixa no cabeçalho — visível durante toda a rolagem. */
+/** Progresso de séries fixo no cabeçalho — visível durante toda a rolagem. */
 function ProgressoHoje() {
   const st = useStore();
   const treino = st.treinoAtivoId ? st.treinos[st.treinoAtivoId] : null;
   if (!treino || treino.deleted) return null;
-  const { feitas, total } = contarSeries(treino, st.sessaoAtiva());
+  const sess = st.sessaoAtiva();
+  const { feitas, total } = contarSeries(planoDoDia(treino, st.programaAtivo(), st.sessoes, st.dataAtiva), sess);
   if (!total) return null;
   return (
-    <div className="prog-header">
-      <div className="progresso-top">
-        <span>Séries concluídas</span>
-        <b>
-          {feitas} / {total}
-        </b>
-      </div>
-      <div className="barra">
+    <div className="prog-header" aria-label={`${feitas} de ${total} séries feitas`}>
+      <span className="num">
+        {feitas}/{total} séries
+      </span>
+      <span className="trilho">
         <i style={{ width: `${(feitas / total) * 100}%` }} />
-      </div>
+      </span>
     </div>
   );
 }
@@ -144,7 +160,7 @@ function FaixaAtualizacao() {
   return (
     <div className="faixa-atualizar" role="status">
       <span>Tem versão nova do BIRL!</span>
-      <button className="btn-mini laranja" type="button" onClick={aplicar}>
+      <button className="btn-mini" type="button" onClick={aplicar}>
         Atualizar
       </button>
     </div>
@@ -164,5 +180,10 @@ function AvisoSalvo() {
     return () => clearTimeout(timer.current);
   }, [contador]);
 
-  return <div className={`salvo-aviso${visivel ? " mostra" : ""}`}>Salvo ✓</div>;
+  return (
+    <span className={`salvo${visivel ? " mostra" : ""}`} aria-live="polite">
+      <Icone nome="check" pequeno />
+      {visivel ? "Salvo" : ""}
+    </span>
+  );
 }

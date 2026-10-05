@@ -31,8 +31,8 @@ export default defineConfig({
         name: "BIRL! — Plataforma de Treinos",
         short_name: "BIRL!",
         description: "Registro pessoal de treinos, evolução e medidas",
-        theme_color: "#0c0c0d",
-        background_color: "#0c0c0d",
+        theme_color: "#0e1013",
+        background_color: "#0e1013",
         display: "standalone",
         lang: "pt-BR",
         icons: [

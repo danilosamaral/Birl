@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useStore } from "../store";
+import { Icone } from "../icones";
 import { DIAS_SEMANA, treinosDoPrograma, treinosVisiveis } from "../utils";
 import type { Programa } from "../types";
 
@@ -43,7 +44,7 @@ export function EditorPrograma({ programaId, aoVoltar }: { programaId: string; a
     <>
       <div className="acoes" style={{ marginBottom: 16 }}>
         <button className="btn btn-sec" type="button" onClick={aoVoltar}>
-          ‹ Voltar
+          <Icone nome="voltar" pequeno /> Voltar
         </button>
         {!ativo && (
           <button className="btn btn-pri" type="button" onClick={() => st.setProgramaAtivo(programa.id)}>
@@ -52,7 +53,7 @@ export function EditorPrograma({ programaId, aoVoltar }: { programaId: string; a
         )}
       </div>
 
-      {ativo && <div className="banner-ok">✓ Este é o programa ativo — a tela Hoje segue a divisão dele.</div>}
+      {ativo && <div className="banner-ok">Este é o programa em uso — a tela Hoje segue a divisão dele.</div>}
 
       <div className="card">
         <label className="form-linha">
@@ -79,13 +80,13 @@ export function EditorPrograma({ programaId, aoVoltar }: { programaId: string; a
           return (
             <div className="ed-serie" key={tid}>
               <div className="linha1">
-                <span style={{ flex: 1, fontFamily: "var(--head)", fontWeight: 600 }}>
+                <span style={{ flex: 1, fontWeight: 600 }}>
                   {t.nome}
                   {t.arquivado ? " (arquivado)" : ""}
-                  {t.foco && <small style={{ display: "block", color: "var(--muted)", fontWeight: 400 }}>{t.foco}</small>}
+                  {t.foco && <small style={{ display: "block", color: "var(--ink-2)", fontWeight: 400 }}>{t.foco}</small>}
                 </span>
                 <button className="btn-mini" type="button" disabled={i === 0} onClick={() => mover(i, -1)} aria-label="Mover para cima">
-                  ↑
+                  <Icone nome="subir" pequeno />
                 </button>
                 <button
                   className="btn-mini"
@@ -94,7 +95,7 @@ export function EditorPrograma({ programaId, aoVoltar }: { programaId: string; a
                   onClick={() => mover(i, 1)}
                   aria-label="Mover para baixo"
                 >
-                  ↓
+                  <Icone nome="descer" pequeno />
                 </button>
                 <button
                   className="btn-mini perigo"
