@@ -131,10 +131,14 @@ svg.ic { width: 24px; height: 24px; fill: none; stroke: currentColor; stroke-wid
 svg.ic.p { width: 18px; height: 18px; }
 
 /* ---------- cabeçalho (sólido, encolhe ao rolar) ---------- */
+/* Fixo (fora do fluxo da página) + espaço reservado de altura constante (.topo-espaco):
+   encolher o cabeçalho não muda a altura da página. Se mudasse, o navegador compensaria a
+   rolagem, o cabeçalho voltaria a crescer e o ciclo se repetiria (o "pisca-pisca"). */
 header.topo {
-  position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line);
-  padding: calc(env(safe-area-inset-top) + 10px) 16px 10px;
+  position: fixed; top: 0; left: 0; right: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line);
+  padding: calc(env(safe-area-inset-top) + 10px) calc(16px + env(safe-area-inset-right)) 10px calc(16px + env(safe-area-inset-left));
 }
+.topo-espaco { flex: 0 0 auto; }
 .topo-linha { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
 .marca { font-family: var(--display); font-size: 15px; letter-spacing: 0.12em; color: var(--ink); }
 .marca .ponto { color: var(--brand-ink); }
