@@ -44,6 +44,10 @@ sincronização no Supabase). Usada **no celular, em pé na academia, entre uma 
 - Toda série precisa de descanso que o timer entenda (`parseIntervalo`); os testes do catálogo
   garantem isso.
 - Sugestão de carga (`src/progressao.ts`) só **mostra**, nunca preenche.
+- **Registro de séries só com o treino iniciado** (`src/registro.ts`): marcar série, carga/reps, RIR,
+  − e + de séries e extras pedem "Iniciar treino" (hoje), "Retomar" (encerrado) ou
+  "Registrar sem cronômetro" (dia passado). Preparo, avaliação e observações ficam livres.
+- Quantidade de séries do dia: botões − e + (1 a 12) gravam em `RegistroSerie.sets`; o plano não muda.
 - Vídeos: só busca pública no YouTube (sem links de área de membros/conteúdo pago).
 
 ## Verificação (antes de todo commit de código)

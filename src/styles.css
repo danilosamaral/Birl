@@ -317,6 +317,14 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); out
 .feito-btn.on { background: var(--success-solid); border-color: var(--success-solid); color: var(--on-accent); }
 .feito-btn:active { filter: brightness(1.1); }
 .nota-linha { display: flex; flex-wrap: wrap; gap: 6px; }
+/* quantidade de séries do dia: − 2 séries + */
+.stepper { display: flex; align-items: center; gap: 10px; }
+.stepper button { width: var(--tap-min); height: 44px; border-radius: var(--radius-md); border: 1px solid var(--line-strong); background: transparent; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.stepper button:disabled { opacity: 0.35; cursor: default; }
+.stepper span { min-width: 80px; text-align: center; font-weight: 700; font-size: 16px; }
+/* sem Iniciar treino: tudo visível, apagado; o toque pergunta se quer iniciar */
+.serie.travada .campo input, .serie.travada .feito-btn, .serie.travada .rir button, .serie.travada .stepper button { opacity: 0.5; }
+.serie.travada .campo input { caret-color: transparent; }
 .add-extra { border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); padding: 12px 14px; margin: 4px 0 16px; }
 .add-extra p { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); }
 

@@ -89,6 +89,10 @@ interface Estado {
   iniciarTreino(): void;
   encerrarTreino(): void;
   retomarTreino(): void;
+  /** dia passado: libera o registro sem cronômetro (não grava duração) */
+  registrarSemCronometro(): void;
+  /** fecha o registro sem cronômetro (volta a travar o dia) */
+  concluirRegistro(): void;
   setAval(attr: keyof Aval, valor: number): void;
   setObs(obs: string): void;
   alternarPreparo(i: number): void;
@@ -652,6 +656,18 @@ export const useStore = create<Estado>((set, get) => {
       const sess = { ...get().sessaoAtiva() };
       if (!sess.fim) return;
       delete sess.fim;
+      salvarSessao(sess);
+    },
+    registrarSemCronometro() {
+      const sess = { ...get().sessaoAtiva() };
+      if (sess.manual) return;
+      sess.manual = true;
+      salvarSessao(sess);
+    },
+    concluirRegistro() {
+      const sess = { ...get().sessaoAtiva() };
+      if (!sess.manual) return;
+      delete sess.manual;
       salvarSessao(sess);
     },
     setAval(attr, valor) {

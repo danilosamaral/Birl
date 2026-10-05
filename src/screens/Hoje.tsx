@@ -10,6 +10,7 @@ import { Icone, IconeTipo } from "../icones";
 import { parseIntervalo } from "../analise";
 import { formatarKg, sugerirCarga, ultimoTrabalho } from "../progressao";
 import { proximaEtapa } from "../trilha";
+import { MAX_SERIES, MIN_SERIES, estadoRegistro } from "../registro";
 import { ROTULO_TIPO, ATRIBUTOS, TECNICAS, extraId, regKey, rotuloDaNota } from "../types";
 import type { RegistroSerie, Sessao, TreinoExercicio, TipoSerie } from "../types";
 import { glosDaNota } from "../glossario";
@@ -54,6 +55,41 @@ function descanso(int: string): string {
   return t.replace(/(\d+)\s*a\s*(\d+)/, "$1–$2");
 }
 
+/**
+ * Registro das séries só com o treino iniciado (src/registro.ts). Bloqueado,
+ * um toque pergunta se quer iniciar (ou retomar / registrar sem cronômetro) e,
+ * confirmando, já executa o que você tinha tentado fazer.
+ */
+function useRegistro() {
+  const st = useStore();
+  const sess = st.sessaoAtiva();
+  const estado = estadoRegistro(sess, dataHoje());
+  const liberado = estado === "liberado";
+  const pedir = async (depois?: () => void) => {
+    if (liberado) {
+      depois?.();
+      return;
+    }
+    const s = useStore.getState();
+    const pedido =
+      estado === "encerrado"
+        ? { titulo: "Treino encerrado", texto: "Para corrigir ou marcar séries, retome o treino. O cronômetro volta a contar.", acao: "Retomar treino", fazer: s.retomarTreino }
+        : estado === "passado"
+          ? {
+              titulo: `Registrar o treino de ${formatarData(sess.data)}?`,
+              texto: "Libera o registro deste dia sem cronômetro — a duração não é gravada.",
+              acao: "Registrar sem cronômetro",
+              fazer: s.registrarSemCronometro,
+            }
+          : { titulo: "Iniciar o treino agora?", texto: "O cronômetro do treino começa agora e o registro das séries fica liberado.", acao: "Iniciar treino", fazer: s.iniciarTreino };
+    const ok = await confirmar({ titulo: pedido.titulo, texto: pedido.texto, acao: pedido.acao, perigo: false });
+    if (!ok) return;
+    pedido.fazer();
+    depois?.();
+  };
+  return { estado, liberado, pedir };
+}
+
 export function Hoje() {
   const st = useStore();
   const abrirGuia = useGuia((s) => s.abrir);
@@ -63,6 +99,7 @@ export function Hoje() {
   const sess = st.sessaoAtiva();
   const [pickerExtra, setPickerExtra] = useState(false);
   const [trocarDia, setTrocarDia] = useState(false);
+  const registro = useRegistro();
 
   // exercícios retráteis: por padrão só o exercício "da vez" (primeiro com
   // séries pendentes) fica aberto; toques no cabeçalho sobrescrevem
@@ -188,6 +225,19 @@ export function Hoje() {
         )}
       </section>
 
+      {!registro.liberado && (
+        <div className="banner-dica">
+          <Icone nome="info" pequeno />
+          <span>
+            {registro.estado === "encerrado"
+              ? "Treino encerrado. Para corrigir uma série, toque em Retomar."
+              : registro.estado === "passado"
+                ? "Para registrar séries neste dia, toque em Registrar sem cronômetro."
+                : "Para registrar as séries, toque em Iniciar treino."}
+          </span>
+        </div>
+      )}
+
       {itens.map(({ te, extra }, i) => (
         <BlocoExercicio
           key={te.id}
@@ -204,7 +254,7 @@ export function Hoje() {
 
       <div className="add-extra">
         <p>Fez algo fora do {treino.nome}? Acrescente só neste dia — o plano do treino continua como está.</p>
-        <button className="btn btn-sec" type="button" style={{ width: "100%" }} onClick={() => setPickerExtra(true)}>
+        <button className="btn btn-sec" type="button" style={{ width: "100%" }} onClick={() => void registro.pedir(() => setPickerExtra(true))}>
           <Icone nome="mais" pequeno />
           Exercício fora do treino
         </button>
@@ -355,6 +405,7 @@ function BlocoExercicio({
   const abrirDetalhe = useDetalheEx((s) => s.abrir);
   const ex = st.exercicios[te.exercicioId];
   const ultimo = ultimoTrabalho(te.exercicioId, historicoGeral, st.treinos, st.dataAtiva);
+  const registro = useRegistro();
   const contEx = contarSeriesExercicio(te, sess);
   const completo = contEx.total > 0 && contEx.feitas >= contEx.total;
 
@@ -422,7 +473,7 @@ function BlocoExercicio({
           ))}
           {extra && (
             <div className="acoes" style={{ margin: "0 0 12px" }}>
-              <button className="btn btn-sec" type="button" onClick={() => st.adicionarSerieExtra(te.id)}>
+              <button className="btn btn-sec" type="button" onClick={() => void registro.pedir(() => st.adicionarSerieExtra(te.id))}>
                 <Icone nome="mais" pequeno />
                 Série
               </button>
@@ -430,6 +481,7 @@ function BlocoExercicio({
                 className="btn btn-perigo"
                 type="button"
                 onClick={async () => {
+                  if (!registro.liberado) return void registro.pedir();
                   const nome = ex?.nome ?? "este exercício";
                   const ok = await confirmar({
                     titulo: "Tirar do dia?",
@@ -469,6 +521,8 @@ function LinhaSerie({
 }) {
   const st = useStore();
   const abrirGlos = useGlos((s) => s.abrir);
+  const registro = useRegistro();
+  const travada = !registro.liberado;
   const s = te.series[serieIdx];
   const chave = regKey(te.id, serieIdx);
   const salvo = sess.registros[chave];
@@ -501,6 +555,11 @@ function LinhaSerie({
       if (segundos > 0) useTimer.getState().iniciar(segundos);
     }
   };
+  // quantidade de séries do dia (− e +): grava em "sets", que já define os botões 1ª/2ª/…
+  const mudarQuantidade = (delta: number) => {
+    const novo = Math.min(MAX_SERIES, Math.max(MIN_SERIES, n + delta));
+    if (novo !== n) mudar("sets", String(novo));
+  };
   const glosNota = glosDaNota(s.nota);
   const clsInput = preCarga ? "sugerida" : "";
   const desc = descanso(s.int);
@@ -508,7 +567,7 @@ function LinhaSerie({
   const rirValores = ["0", "1", "2", "3+"];
 
   return (
-    <div className={`serie${feita ? " feita" : ""}`}>
+    <div className={`serie${feita ? " feita" : ""}${travada ? " travada" : ""}`}>
       <div className="serie-top">
         <button
           className={`badge ${s.tipo}`}
@@ -527,12 +586,34 @@ function LinhaSerie({
           <button
             className="btn-icone"
             type="button"
-            onClick={() => st.removerSerieExtra(te.id, serieIdx)}
+            onClick={() => void registro.pedir(() => st.removerSerieExtra(te.id, serieIdx))}
             aria-label={`Remover a ${serieIdx + 1}ª linha de série`}
           >
             <Icone nome="fechar" pequeno />
           </button>
         )}
+      </div>
+
+      <div className="stepper" role="group" aria-label="Quantidade de séries hoje">
+        <button
+          type="button"
+          disabled={!travada && n <= MIN_SERIES}
+          onClick={() => void registro.pedir(() => mudarQuantidade(-1))}
+          aria-label="Uma série a menos"
+        >
+          <Icone nome="menos" pequeno />
+        </button>
+        <span className="num">
+          {n} série{n > 1 ? "s" : ""}
+        </span>
+        <button
+          type="button"
+          disabled={!travada && n >= MAX_SERIES}
+          onClick={() => void registro.pedir(() => mudarQuantidade(1))}
+          aria-label="Uma série a mais"
+        >
+          <Icone nome="mais" pequeno />
+        </button>
       </div>
 
       {(s.nota || ehRM) && (
@@ -583,6 +664,8 @@ function LinhaSerie({
             className={clsInput}
             value={mostra.kg}
             placeholder="kg"
+            readOnly={travada}
+            onClick={travada ? () => void registro.pedir() : undefined}
             onChange={(e) => mudar("kg", e.target.value)}
             aria-label={`Carga em quilos de ${nomeExercicio}`}
           />
@@ -595,6 +678,8 @@ function LinhaSerie({
             className={clsInput}
             value={mostra.reps}
             placeholder={ehRM ? "máx" : faixa}
+            readOnly={travada}
+            onClick={travada ? () => void registro.pedir() : undefined}
             onChange={(e) => mudar("reps", e.target.value)}
             aria-label={`Repetições feitas de ${nomeExercicio}`}
           />
@@ -616,7 +701,7 @@ function LinhaSerie({
                 key={v}
                 type="button"
                 aria-pressed={mostra.rir === v || (v === "3+" && Number(mostra.rir) >= 3)}
-                onClick={() => mudar("rir", mostra.rir === v ? "" : v)}
+                onClick={() => void registro.pedir(() => mudar("rir", mostra.rir === v ? "" : v))}
               >
                 {v}
               </button>
@@ -632,7 +717,7 @@ function LinhaSerie({
             type="button"
             className={`feito-btn${f ? " on" : ""}`}
             aria-pressed={f}
-            onClick={() => alternarFeito(i)}
+            onClick={() => void registro.pedir(() => alternarFeito(i))}
             aria-label={n > 1 ? `${i + 1}ª série de ${ROTULO_TIPO[s.tipo].toLowerCase()} feita` : "Série feita"}
           >
             {f && <Icone nome="check" pequeno />}
@@ -656,6 +741,36 @@ function BlocoDuracao() {
     const intervalo = setInterval(() => tick((x) => x + 1), 1000);
     return () => clearInterval(intervalo);
   }, [rodando, sess.id]);
+
+  const passado = sess.data < dataHoje();
+
+  if (sess.manual) {
+    return (
+      <div className="duracao">
+        <span className="tempo encerrado" style={{ color: "var(--ink-2)" }}>
+          Registrando sem cronômetro
+        </span>
+        <button className="btn btn-sec" type="button" onClick={st.concluirRegistro}>
+          <Icone nome="check" pequeno />
+          Concluir registro
+        </button>
+      </div>
+    );
+  }
+
+  // dia passado (e não ficou um treino em andamento): edita sem cronômetro
+  if (passado && !rodando) {
+    const min = sess.fim ? duracaoMin(sess) : null;
+    return (
+      <div className="duracao">
+        {sess.fim && <span className="tempo encerrado">Treino encerrado · {min != null ? formatarDuracao(Math.max(min, 1)) : "—"}</span>}
+        <button className={`btn ${sess.fim ? "btn-sec" : "btn-pri"}`} type="button" onClick={st.registrarSemCronometro}>
+          <Icone nome={sess.fim ? "editar" : "calendario"} pequeno />
+          {sess.fim ? "Corrigir sem cronômetro" : "Registrar sem cronômetro"}
+        </button>
+      </div>
+    );
+  }
 
   if (!sess.inicio) {
     return (
