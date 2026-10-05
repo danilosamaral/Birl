@@ -2,8 +2,8 @@ import { create } from "zustand";
 import { abrirBanco, adotarBancoLegado, db, fecharBanco, getMeta, setMeta, usuarioDonoDoLegado } from "./db";
 import { gerarSeeds } from "./seeds";
 import { gerarBiblioteca, gerarEnriquecimentoSeeds, SEED_EPOCH_V2, SEED_EPOCH_V3 } from "./biblioteca";
-import { CATALOGO, exercicioNovoDoCatalogo } from "./catalogo";
-import { seedExercicioId } from "./seeds";
+import { CATALOGO, exercicioNovoDoCatalogo, idDoItemCatalogo } from "./catalogo";
+import { unificarExercicios } from "./unificacao";
 import type { TreinoExercicio } from "./types";
 import { migrarLocal, migrarRemoto } from "./migracao";
 import { enfileirar, limparFila, setLogado, sincronizarTudo, supa, traduzErro, usuarioAtual, type Tabela } from "./sync";
@@ -71,7 +71,9 @@ interface Estado {
   arquivarPrograma(id: string, arquivado: boolean): void;
   excluirPrograma(id: string): void;
   /** Instancia um programa do catálogo; retorna o id criado (ou null). */
-  adicionarProgramaDoCatalogo(templateId: string): string | null;
+  adicionarProgramaDoCatalogo(templateId: string, opcoes?: { sedentario?: boolean; ativar?: boolean }): string | null;
+  /** Junta exercícios de mesmo movimento (ver src/unificacao.ts); grava só o que mudou. */
+  unificar(): Promise<void>;
 
   salvarMedida(m: Medida): void;
   excluirMedida(id: string): void;
@@ -312,6 +314,8 @@ export const useStore = create<Estado>((set, get) => {
       // o histórico do app antigo (localStorage) também é do dono do aparelho
       const migradas = dono ? await migrarLocal() : 0;
       await get().recarregar();
+      // v6: nomes unificados, técnicas como etiqueta e descanso das séries de trabalho
+      await get().unificar();
       set({ pronto: true, migradas, treinoAtivoId: treinoSugerido(get().dataAtiva) });
       void get().aoLogar();
     },
@@ -476,7 +480,25 @@ export const useStore = create<Estado>((set, get) => {
       persistir("programas", morto);
       if (get().prefs.programaAtivoId === id) get().setProgramaAtivo(null);
     },
-    adicionarProgramaDoCatalogo(templateId) {
+    async unificar() {
+      const { exercicios, treinos, sessoes } = get();
+      const m = unificarExercicios(exercicios, treinos, sessoes, agora());
+      if (!m.exercicios.length && !m.treinos.length && !m.sessoes.length) return;
+      for (const e of m.exercicios) {
+        await db.exercicios.put(e);
+        enfileirar("exercicios", e.id);
+      }
+      for (const t of m.treinos) {
+        await db.treinos.put(t);
+        enfileirar("treinos", t.id);
+      }
+      for (const ss of m.sessoes) {
+        await db.sessoes.put(ss);
+        enfileirar("sessoes", ss.id);
+      }
+      await get().recarregar();
+    },
+    adicionarProgramaDoCatalogo(templateId, opcoes = {}) {
       const tpl = CATALOGO.find((t) => t.id === templateId);
       if (!tpl) return null;
       const exAtuais = { ...get().exercicios };
@@ -486,15 +508,16 @@ export const useStore = create<Estado>((set, get) => {
       const ordemBase = Math.max(...Object.values(get().treinos).map((t) => t.ordem), -1) + 1;
       const treinos: Treino[] = tpl.treinos.map((ct, ti) => {
         const exercicios: TreinoExercicio[] = ct.exercicios.map((ce) => {
-          const exId = seedExercicioId(ce.nome);
+          const exId = idDoItemCatalogo(ce);
           // reaproveita exercício existente (histórico unificado) ou cria o que falta
-          if (!exAtuais[exId] && !novosEx.some((e) => e.id === exId)) {
+          if ((!exAtuais[exId] || exAtuais[exId].deleted) && !novosEx.some((e) => e.id === exId)) {
             novosEx.push(exercicioNovoDoCatalogo(ce));
           }
           return {
             id: novoId(),
             exercicioId: exId,
             series: ce.series.map((s) => ({ ...s })),
+            ...(ce.tecnicas?.length ? { tecnicas: [...ce.tecnicas] } : {}),
             ...(ce.aviso ? { aviso: ce.aviso } : {}),
           };
         });
@@ -502,6 +525,7 @@ export const useStore = create<Estado>((set, get) => {
           id: idsPorIndice[ti],
           nome: ct.nome,
           foco: ct.foco,
+          ...(ct.preparo?.length ? { preparo: [...ct.preparo] } : {}),
           ordem: ordemBase + ti,
           exercicios,
           updated_at: agora(),
@@ -515,6 +539,9 @@ export const useStore = create<Estado>((set, get) => {
         id: novoId(),
         nome: tpl.nome,
         descricao: tpl.descricao,
+        catalogoId: tpl.id,
+        ...(tpl.lembrete ? { lembrete: tpl.lembrete } : {}),
+        ...(opcoes.sedentario ? { sedentario: true } : {}),
         treinoIds: idsPorIndice,
         divisaoSemana,
         updated_at: agora(),
@@ -534,6 +561,7 @@ export const useStore = create<Estado>((set, get) => {
       }
       set({ exercicios: exState, treinos: trState, programas: { ...get().programas, [programa.id]: programa } });
       persistir("programas", programa);
+      if (opcoes.ativar) get().setProgramaAtivo(programa.id);
       return programa.id;
     },
 
@@ -704,6 +732,8 @@ export const useStore = create<Estado>((set, get) => {
       try {
         const r = await sincronizarTudo();
         await get().recarregar();
+        // o que chegou de um aparelho com a versão antiga também é unificado
+        await get().unificar();
         if (r.ok) {
           set({
             ultimoSync: Date.now(),

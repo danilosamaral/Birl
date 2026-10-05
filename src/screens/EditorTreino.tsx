@@ -46,7 +46,7 @@ export function EditorTreino({ treinoId }: { treinoId: string }) {
         series: [
           { tipo: "aquecimento", presc: "1-2 × 10 a 15", int: "1 min" },
           { tipo: "ajuste", presc: "1-2 × 4 a 6", int: "1 a 2 min" },
-          { tipo: "trabalho", presc: "1 × 6 a 10", int: "—" },
+          { tipo: "trabalho", presc: "1 × 6 a 10", int: "2 a 3 min" },
         ],
       });
     });
@@ -198,7 +198,7 @@ function EditorExercicio({
           onClick={() =>
             onMutar((x) => {
               const ultima = x.series[x.series.length - 1];
-              x.series.push(ultima ? { ...ultima } : { tipo: "trabalho", presc: "1 × 6 a 10", int: "—" });
+              x.series.push(ultima ? { ...ultima } : { tipo: "trabalho", presc: "1 × 6 a 10", int: "2 a 3 min" });
             })
           }
         >

@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useStore } from "../store";
 import { useGlos, ListaGlossario } from "../glos";
 import { useDetalheEx } from "../detalhe";
-import { useTimer } from "../TimerDescanso";
+import { prepararAudio, useTimer } from "../TimerDescanso";
 import { PickerExercicio } from "../PickerExercicio";
 import { parseIntervalo } from "../analise";
 import { ROTULO_TIPO, ATRIBUTOS, extraId, regKey } from "../types";
@@ -398,6 +398,7 @@ function LinhaSerie({
     const base = sugestao ? { ...sugestao } : { ...r };
     st.setRegistroCompleto(chave, { ...base, feitos: novos, done: novos.every(Boolean) });
     if (novos[i] && st.prefs.timerDescanso !== false) {
+      prepararAudio();
       const segundos = parseIntervalo(s.int);
       if (segundos > 0) useTimer.getState().iniciar(segundos);
     }

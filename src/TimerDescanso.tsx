@@ -22,12 +22,38 @@ export const useTimer = create<TimerState>((set, get) => ({
   parar: () => set({ fim: null, total: 0 }),
 }));
 
-function apitar() {
+type JanelaComAudio = typeof window & { webkitAudioContext?: typeof AudioContext };
+let audio: AudioContext | null = null;
+
+/**
+ * Prepara o som do fim do descanso. Precisa ser chamado num toque (o Safari do
+ * iPhone só libera áudio que nasce de um gesto) e reaproveita sempre o mesmo
+ * AudioContext — o iPhone limita quantos podem existir ao mesmo tempo.
+ */
+export function prepararAudio() {
   try {
-    type JanelaComAudio = typeof window & { webkitAudioContext?: typeof AudioContext };
     const Ctx = window.AudioContext ?? (window as JanelaComAudio).webkitAudioContext;
     if (!Ctx) return;
-    const ctx = new Ctx();
+    if (!audio) audio = new Ctx();
+    if (audio.state === "suspended") void audio.resume();
+    // um som mudo e curtíssimo dentro do toque "destrava" o áudio no iOS
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    gain.gain.value = 0;
+    osc.connect(gain);
+    gain.connect(audio.destination);
+    osc.start();
+    osc.stop(audio.currentTime + 0.01);
+  } catch {
+    // sem áudio disponível: o aviso visual continua
+  }
+}
+
+function apitar() {
+  try {
+    const ctx = audio;
+    if (!ctx) return;
+    if (ctx.state === "suspended") void ctx.resume();
     [0, 0.3].forEach((t) => {
       const osc = ctx.createOscillator();
       const gain = ctx.createGain();
