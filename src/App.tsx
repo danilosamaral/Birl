@@ -24,22 +24,46 @@ const TABS: Array<{ id: Aba; rotulo: string; ic: NomeIcone }> = [
   { id: "ajustes", rotulo: "Ajustes", ic: "ajustes" },
 ];
 
-/** Cabeçalho encolhe depois de rolar um pouco: mais tela para o exercício. */
-function useRolou(limite = 48) {
+/**
+ * Cabeçalho encolhe depois de rolar um pouco: mais tela para o exercício.
+ * Encolhe acima de 64px e só volta a crescer abaixo de 16px — a folga evita
+ * que ele fique alternando quando a rolagem para perto do limite.
+ */
+function useRolou(encolher = 64, crescer = 16) {
   const [rolou, setRolou] = useState(false);
   useEffect(() => {
-    const f = () => setRolou(window.scrollY > limite);
+    const f = () => setRolou((antes) => (antes ? window.scrollY > crescer : window.scrollY > encolher));
     f();
     window.addEventListener("scroll", f, { passive: true });
     return () => window.removeEventListener("scroll", f);
-  }, [limite]);
+  }, [encolher, crescer]);
   return rolou;
+}
+
+/**
+ * Altura do cabeçalho ABERTO, medida enquanto ele não está compacto. O espaço
+ * reservado embaixo dele usa essa altura e não muda quando ele encolhe.
+ */
+function useAlturaTopo(compacto: boolean) {
+  // ref "de função": mede assim que o cabeçalho aparece (ele só existe depois do "Carregando…")
+  const [el, ref] = useState<HTMLElement | null>(null);
+  const [altura, setAltura] = useState(0);
+  useEffect(() => {
+    if (!el || compacto) return;
+    const medir = () => setAltura(el.offsetHeight);
+    medir();
+    const obs = new ResizeObserver(medir);
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [el, compacto]);
+  return { ref, altura };
 }
 
 export function App() {
   const st = useStore();
   useAparencia(); // aplica a paleta/modo escolhidos
   const rolou = useRolou();
+  const topo = useAlturaTopo(rolou);
 
   useEffect(() => {
     void useStore.getState().init();
@@ -91,7 +115,7 @@ export function App() {
 
   return (
     <>
-      <header className={`topo${rolou ? " compacto" : ""}`}>
+      <header ref={topo.ref} className={`topo${rolou ? " compacto" : ""}`}>
         <div className="marca">
           BIRL<span className="ponto">!</span>
         </div>
@@ -102,6 +126,7 @@ export function App() {
         {subtitulo && <div className="sub-treino">{subtitulo}</div>}
         {st.tab === "hoje" && <ProgressoHoje />}
       </header>
+      <div className="topo-espaco" style={{ height: topo.altura }} aria-hidden="true" />
 
       <main>
         {st.tab === "hoje" && <Hoje />}
