@@ -603,8 +603,12 @@ function LinhaSerie({
         >
           <Icone nome="menos" pequeno />
         </button>
-        <span className="num">
-          {n} série{n > 1 ? "s" : ""}
+        <span className="valor" aria-live="polite">
+          <b className="num">
+            {n} série{n > 1 ? "s" : ""}
+          </b>
+          {/* mudou a quantidade prevista? lembra discretamente o que o plano pede */}
+          {n !== seriesDaLinha(s.presc, "") && <small>previsto: {s.presc.split("×")[0].trim().replace("-", "–")}</small>}
         </span>
         <button
           type="button"

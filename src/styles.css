@@ -318,12 +318,22 @@ input:focus, select:focus, textarea:focus { outline: 2px solid var(--focus); out
 .feito-btn:active { filter: brightness(1.1); }
 .nota-linha { display: flex; flex-wrap: wrap; gap: 6px; }
 /* quantidade de séries do dia: − 2 séries + */
-.stepper { display: flex; align-items: center; gap: 10px; }
-.stepper button { width: var(--tap-min); height: 44px; border-radius: var(--radius-md); border: 1px solid var(--line-strong); background: transparent; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+/* quantidade de séries do dia: uma barra única da largura dos campos — [ − | 2 séries | + ] */
+.stepper {
+  display: grid; grid-template-columns: var(--tap-feito) 1fr var(--tap-feito); align-items: stretch;
+  min-height: var(--tap-min); border: 1px solid var(--line-strong); border-radius: var(--radius-md); overflow: hidden;
+  background: var(--surface-2);
+}
+.stepper button { border: none; background: transparent; color: var(--ink); display: inline-flex; align-items: center; justify-content: center; cursor: pointer; padding: 0; }
+.stepper button:first-child { border-right: 1px solid var(--line); }
+.stepper button:last-child { border-left: 1px solid var(--line); }
+.stepper button:active:not(:disabled) { background: var(--line); }
 .stepper button:disabled { opacity: 0.35; cursor: default; }
-.stepper span { min-width: 80px; text-align: center; font-weight: 700; font-size: 16px; }
+.stepper .valor { display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 4px 8px; line-height: 1.15; }
+.stepper .valor b { font-weight: 700; font-size: 16px; }
+.stepper .valor small { font-size: 12px; font-weight: 600; color: var(--ink-3); margin-top: 2px; }
 /* sem Iniciar treino: tudo visível, apagado; o toque pergunta se quer iniciar */
-.serie.travada .campo input, .serie.travada .feito-btn, .serie.travada .rir button, .serie.travada .stepper button { opacity: 0.5; }
+.serie.travada .campo input, .serie.travada .feito-btn, .serie.travada .rir button, .serie.travada .stepper { opacity: 0.5; }
 .serie.travada .campo input { caret-color: transparent; }
 .add-extra { border: 1px dashed var(--line-strong); border-radius: var(--radius-lg); padding: 12px 14px; margin: 4px 0 16px; }
 .add-extra p { margin: 0 0 8px; font-size: 14px; color: var(--ink-2); }
