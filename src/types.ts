@@ -91,6 +91,8 @@ export interface Sessao {
   ordemExecucao?: string[];
   /** itens do preparo do dia já ticados (0 = aquecimento geral, 1… = os do treino) */
   preparo?: number[];
+  /** registro liberado sem cronômetro (dia passado): edita sem gravar duração */
+  manual?: boolean;
   /** timestamps de iniciar/encerrar treino (duração da sessão) */
   inicio?: string;
   fim?: string;

@@ -28,6 +28,7 @@ const P: Record<string, ReactNode> = {
   voltar: <path d="M15 6l-6 6 6 6" />,
   abaixo: <path d="M6 9l6 6 6-6" />,
   mais: <path d="M12 5v14M5 12h14" />,
+  menos: <path d="M5 12h14" />,
   fechar: <path d="M6 6l12 12M18 6L6 18" />,
   menu: (
     <>
