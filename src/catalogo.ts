@@ -1,7 +1,7 @@
 import type { Exercicio, SeriePlano } from "./types";
 import { agora } from "./types";
 import { idDoExercicio, canonicoPorNome } from "./canonicos";
-import { MIDIA_CDN } from "./biblioteca";
+import { MIDIA_CDN, idDaBiblioteca } from "./biblioteca";
 
 /**
  * Catálogo de programas prontos (templates), organizado como a trilha do
@@ -31,6 +31,10 @@ export interface CatExercicio {
   tecnicas?: string[];
   series: SeriePlano[];
   aviso?: string;
+  /** só para exercício novo: vai para a ficha do exercício */
+  equipamento?: string;
+  /** só para exercício novo: passos da execução, um por linha */
+  instrucoes?: string[];
 }
 
 export interface CatTreino {
@@ -67,10 +71,38 @@ export interface CatalogoPrograma {
   lembrete?: string;
   /** oferece a opção "estou sedentário" (1 → 2 → 3 séries por semana) */
   opcaoSedentario?: boolean;
+  /** oferece a opção "estou voltando de pausa" (1 série de trabalho nas semanas 1 e 2), já marcada */
+  opcaoReentrada?: boolean;
+  /**
+   * Trilha fora do curso a que o programa pertence (ex.: "rugby"). Sem isso,
+   * o programa é da trilha do curso (Começando → Intermediário → Avançado).
+   */
+  trilha?: string;
   /** dia da semana (0=domingo) -> índice do treino (0-based) ou null (descanso) */
   divisaoSemana: Record<number, number | null>;
   treinos: CatTreino[];
 }
+
+/** Trilhas que não são do curso: aparecem numa seção própria, com as fases que ainda virão. */
+export interface TrilhaExtra {
+  id: string;
+  nome: string;
+  fonte: string;
+  /** fases planejadas que ainda não existem no app (tracejadas, sem botão) */
+  fasesFuturas: { nome: string; meta: string }[];
+}
+
+export const TRILHAS_EXTRAS: TrilhaExtra[] = [
+  {
+    id: "rugby",
+    nome: "Rugby · plano próprio",
+    fonte: "Plano próprio, não faz parte do curso.",
+    fasesFuturas: [
+      { nome: "Fase 2 · Força", meta: "≈6 semanas · depois da reavaliação" },
+      { nome: "Fase 3 · Potência", meta: "≈6 semanas" },
+    ],
+  },
+];
 
 export function imagensCat(libId: string): string[] {
   return [`${MIDIA_CDN}${libId}/0.jpg`, `${MIDIA_CDN}${libId}/1.jpg`];
@@ -463,6 +495,179 @@ export const CATALOGO: CatalogoPrograma[] = [
       },
     ],
   },
+  // ---------------- Trilha Rugby (plano próprio, fora do curso) ----------------
+  {
+    id: "cat_rugby_f1_base",
+    nome: "Rugby · Fase 1 · Base",
+    descricao: "Base muscular com ênfase em pernas e potência, 4x por semana: seg, ter, qui e sex.",
+    paraQuem: "Intermediário voltando de pausa que busca físico de jogador de rúgbi e pernas potentes.",
+    origem: "Plano próprio (Claude), baseado no guia BokSmart de condicionamento para rúgbi",
+    nivel: 2,
+    ordem: 1,
+    trilha: "rugby",
+    semanas: 8,
+    opcaoReentrada: true,
+    lembrete: "Pernas nunca são o treino pulado: semana curta, pule o D. Ter e sex: 20 min de cardio depois do treino.",
+    divisaoSemana: { 1: 0, 2: 1, 3: null, 4: 2, 5: 3, 6: null, 0: null },
+    treinos: [
+      {
+        nome: "Treino A",
+        foco: "Quadríceps · Glúteos · Panturrilha",
+        preparo: [MOB_PERNAS],
+        exercicios: [
+          {
+            nome: "Salto no caixote",
+            grupo: "Quadríceps",
+            libId: "Front_Box_Jump",
+            equipamento: "Caixote ou banco estável de 40 a 50 cm",
+            instrucoes: [
+              "Agache um quarto e salte para cima do caixote, aterrissando com os dois pés.",
+              "Desça andando, nunca saltando de volta.",
+            ],
+            tecnicas: ["explosivo"],
+            aviso: "Cada salto o mais rápido possível. Desça andando.",
+            series: [TR("3 × 5", "1 a 2 min")],
+          },
+          {
+            nome: "Agachamento livre",
+            grupo: "Quadríceps",
+            aviso: "Pare com 1 a 2 repetições sobrando. Coxa paralela, costas retas.",
+            series: [AQ(), AJ(), TR("3 × 8 a 12", "2 a 3 min")],
+          },
+          { nome: "Leg 45", grupo: "Quadríceps", series: [AJ("1 × 4 a 6"), TR("3 × 10 a 12", "2 min")] },
+          {
+            nome: "Afundo búlgaro com halteres",
+            grupo: "Quadríceps",
+            aviso: "Comece pela perna esquerda e repita as mesmas reps na direita.",
+            series: [AJ("1 × 4 a 6", "1 min"), TR("3 × 8 a 12", "1 a 2 min")],
+          },
+          { nome: "Cadeira extensora", grupo: "Quadríceps", series: [AJ("1 × 4 a 6", "1 min"), TR("2 × 10 a 15", "1 min", DS)] },
+          {
+            nome: "Panturrilha em pé (máquina ou smith)",
+            grupo: "Panturrilha",
+            aviso: "Pausa de 1 s embaixo, calcanhar abaixo do degrau.",
+            series: [AQ("1 × 10 a 15"), AJ("1 × 4 a 6", "1 min"), TR("3 × 8 a 12", "1 min")],
+          },
+          { nome: "Abdominal supra no solo", grupo: "Abdômen", libId: "Crunches", series: [TR("3 × 15 a 20", "1 min")] },
+        ],
+      },
+      {
+        nome: "Treino B",
+        foco: "Peito · Costas · Bíceps · Tríceps · Pescoço",
+        preparo: [MOB_OMBROS, ALONG_PEITO],
+        exercicios: [
+          { nome: "Supino reto com halteres ou máquina", grupo: "Peito", series: [AQ(), AJ(), TR("3 × 8 a 12", "2 a 3 min")] },
+          {
+            nome: "Remada curvada com barra",
+            grupo: "Costas",
+            tecnicas: PICO,
+            aviso: "Costas retas; puxe até a parte alta do abdômen.",
+            series: [AQ("1 × 10 a 15"), AJ(), TR("3 × 8 a 12", "2 min")],
+          },
+          { nome: "Supino inclinado com halteres ou máquina", grupo: "Peito", series: [AJ("1 × 4 a 6"), TR("2 × 8 a 12", "2 min")] },
+          { nome: "Remada baixa triângulo", grupo: "Costas", tecnicas: PICO, series: [AJ("1 × 4 a 6", "1 min"), TR("2 × 8 a 12", "1 a 2 min")] },
+          { nome: "Rosca direta com barra ou cabo", grupo: "Bíceps", series: [AQ("1 × 10 a 15"), AJ("1 × 4 a 6", "1 min"), TR("2 × 8 a 12", "1 a 2 min")] },
+          { nome: "Tríceps na corda", grupo: "Tríceps", series: [AJ("1 × 4 a 6", "1 min"), TR("2 × 8 a 12", "1 min", RP)] },
+          {
+            nome: "Extensão de pescoço de quatro apoios",
+            grupo: "Pescoço",
+            equipamento: "Peso corporal (depois, elástico preso à cabeça)",
+            instrucoes: [
+              "De quatro apoios, deixe a cabeça cair à frente.",
+              "Leve a cabeça para cima e para trás devagar e segure um instante no alto.",
+              "Volte controlando.",
+            ],
+            aviso: "Movimento lento, sem tranco.",
+            series: [TR("2 × 15 a 20", "1 min")],
+          },
+        ],
+      },
+      {
+        nome: "Treino C",
+        foco: "Posterior · Glúteos · Panturrilha",
+        preparo: [MOB_PERNAS],
+        exercicios: [
+          {
+            nome: "Balanço com kettlebell",
+            grupo: "Glúteos",
+            libId: "One-Arm_Kettlebell_Swings",
+            equipamento: "Kettlebell (ou halter segurado pela ponta)",
+            instrucoes: [
+              "Leve o peso entre as pernas dobrando o quadril, com as costas retas.",
+              "Projete o quadril à frente com força até o peso subir à altura do peito.",
+              "Os braços só guiam: a força vem do quadril.",
+            ],
+            tecnicas: ["explosivo"],
+            aviso: "A força vem do quadril, não dos braços. Explosivo.",
+            series: [TR("3 × 10", "1 a 2 min")],
+          },
+          {
+            nome: "Meio terra",
+            grupo: "Posterior",
+            aviso: "Pare com 1 a 2 reps sobrando. Barra rente às pernas, costas retas. Barra hexagonal, se houver.",
+            series: [AQ(), AJ(), TR("3 × 6 a 10", "2 a 3 min")],
+          },
+          { nome: "Stiff", grupo: "Posterior", series: [AJ("1 × 4 a 6"), TR("3 × 8 a 12", "2 min")] },
+          { nome: "Elevação de quadril", grupo: "Glúteos", tecnicas: PICO, series: [AJ("1 × 4 a 6", "1 min"), TR("3 × 8 a 12", "1 a 2 min")] },
+          {
+            nome: "Subida no banco com halteres",
+            grupo: "Glúteos",
+            libId: "Dumbbell_Step_Ups",
+            equipamento: "Banco de cerca de 45 cm e halteres",
+            instrucoes: [
+              "Apoie um pé inteiro no banco e suba empurrando só por essa perna, sem impulso da perna de baixo.",
+              "Desça controlando.",
+            ],
+            aviso: "Perna esquerda primeiro; mesmas reps na direita.",
+            series: [TR("3 × 8 a 12", "1 a 2 min")],
+          },
+          { nome: "Mesa flexora deitado", grupo: "Posterior", series: [AJ("1 × 4 a 6", "1 min"), TR("2 × 8 a 12", "1 min", RP)] },
+          { nome: "Panturrilha sentada", grupo: "Panturrilha", series: [AJ("1 × 4 a 6", "1 min"), TR("3 × 10 a 15", "1 min")] },
+        ],
+      },
+      {
+        nome: "Treino D",
+        foco: "Ombro · Costas · Trapézio · Abdômen",
+        preparo: ["Mobilidade e alongamento de ombros e tríceps"],
+        exercicios: [
+          { nome: "Desenvolvimento com halteres ou máquina", grupo: "Ombro", series: [AQ(), AJ(), TR("3 × 8 a 12", "2 a 3 min")] },
+          {
+            nome: "Pulley frente aberto",
+            grupo: "Costas",
+            libId: "Wide-Grip_Lat_Pulldown",
+            series: [AQ("1 × 10 a 15"), AJ(), TR("3 × 8 a 12", "2 min")],
+          },
+          { nome: "Encolhimento com halteres", grupo: "Trapézio", tecnicas: PICO, series: [AJ("1 × 4 a 6", "1 min"), TR("3 × 10 a 15", "1 min")] },
+          { nome: "Elevação lateral", grupo: "Ombro", series: [AJ("1 × 4 a 6", "1 min"), TR("2 × 10 a 15", "1 min", DS)] },
+          {
+            nome: "Crucifixo inverso curvado",
+            grupo: "Ombro",
+            libId: "Bent_Over_Dumbbell_Rear_Delt_Raise_With_Head_On_Bench",
+            equipamento: "Halteres leves",
+            instrucoes: [
+              "Tronco inclinado a cerca de 90°, costas retas.",
+              "Abra os braços para os lados até a linha dos ombros e desça controlando.",
+            ],
+            series: [TR("2 × 12 a 15", "1 min")],
+          },
+          {
+            nome: "Rotação externa de ombro com elástico",
+            grupo: "Ombro",
+            libId: "External_Rotation_with_Band",
+            equipamento: "Elástico preso na altura do cotovelo",
+            instrucoes: [
+              "Cotovelo dobrado a 90° e colado ao corpo.",
+              "Gire o antebraço para fora contra o elástico e volte devagar.",
+              "Faça os dois lados.",
+            ],
+            aviso: "Cotovelo a 90°, colado ao corpo. Carga leve. Anote as reps de um lado.",
+            series: [TR("2 × 12 a 15", "45 s")],
+          },
+          { nome: "Abdominal infra na torre", grupo: "Abdômen", series: [TR("3 × 15 a 20", "1 min")] },
+        ],
+      },
+    ],
+  },
 ];
 
 /** Template de um programa (pelo id de catálogo guardado ou pelo nome, para os antigos). */
@@ -472,10 +677,15 @@ export function templateDoPrograma(p: { id: string; nome: string; catalogoId?: s
   return CATALOGO.find((t) => t.nome === p.nome || t.nomesAntigos?.includes(p.nome));
 }
 
-/** Id do exercício de um item do catálogo: o "Serrote" é a remada unilateral da biblioteca. */
+/**
+ * Id do exercício de um item do catálogo: o nome unificado; senão o exercício
+ * da biblioteca com o mesmo nome (para não criar um repetido); senão um id novo.
+ * O "Serrote" é a remada unilateral da biblioteca.
+ */
 export function idDoItemCatalogo(def: CatExercicio): string {
   if (def.nome === "Serrote") return "sd_lib_One-Arm_Dumbbell_Row";
-  return idDoExercicio(def.nome);
+  if (canonicoPorNome(def.nome)) return idDoExercicio(def.nome);
+  return idDaBiblioteca(def.nome) ?? idDoExercicio(def.nome);
 }
 
 /** Exercício novo (não existente nos seeds) a partir de uma definição do catálogo. */
@@ -487,6 +697,8 @@ export function exercicioNovoDoCatalogo(def: CatExercicio): Exercicio {
     grupo: def.grupo,
     origem: "seed",
     updated_at: agora(),
+    ...(def.equipamento ? { equipamento: def.equipamento } : {}),
+    ...(def.instrucoes?.length ? { instrucoes: def.instrucoes.join("\n") } : {}),
     ...(def.libId ? { midia: { imagens: imagensCat(def.libId) } } : {}),
   };
 }

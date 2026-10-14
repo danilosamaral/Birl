@@ -76,6 +76,12 @@ const P: Record<string, ReactNode> = {
   ),
   arquivo: <path d="M4 7h16v3H4zM6 10v9h12v-9M10 14h4" />,
   trilha: <path d="M5 20V4M5 5h11l-2 3 2 3H5" />,
+  bola: (
+    <>
+      <ellipse cx="12" cy="12" rx="9" ry="5.5" transform="rotate(-35 12 12)" />
+      <path d="M9.5 9.5l5 5M10 12.5l2.5-2.5M11.5 14l2.5-2.5" />
+    </>
+  ),
   peso: <path d="M7 8h10l2 12H5zM9 8a3 3 0 1 1 6 0" />,
 };
 

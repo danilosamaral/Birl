@@ -419,6 +419,10 @@ dialog::backdrop { background: var(--backdrop); }
 .trilha { display: flex; flex-direction: column; gap: 8px; padding-left: 14px; border-left: 2px solid var(--line-strong); margin-left: 12px; }
 .pg { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius-lg); padding: 12px 14px; display: flex; align-items: center; gap: 10px; min-height: 60px; width: 100%; text-align: left; color: var(--ink); cursor: pointer; }
 .pg.ativo { border-color: var(--brand); }
+.pg.depois { background: transparent; border-style: dashed; border-color: var(--line-strong); cursor: default; }
+.pg.depois .nome { color: var(--ink-2); }
+.selo.breve { color: var(--ink-3); border: 1px solid var(--line-strong); }
+.trilha-extra { margin-top: 24px; padding-top: 6px; border-top: 1px solid var(--line); }
 .pg .info { flex: 1; min-width: 0; }
 .pg .nome { font-weight: 700; font-size: 16px; line-height: 21px; }
 .pg .meta { font-size: 14px; line-height: 19px; color: var(--ink-2); }

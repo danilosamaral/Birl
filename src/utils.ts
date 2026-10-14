@@ -317,11 +317,37 @@ export function semanaDoPrograma(programa: Programa, sessoes: Record<string, Ses
   return Math.floor(dias / 7) + 1;
 }
 
+/** Semanas de reentrada (volta de pausa) com 1 série de trabalho por exercício. */
+export const SEMANAS_REENTRADA = 2;
+
+/** Semana de reentrada em curso (1 ou 2), ou null se o programa não usa ou já passou. */
+export function semanaDeReentrada(programa: Programa | null, treinoId: string, sessoes: Record<string, Sessao>, data: string): number | null {
+  if (!programa?.reentrada || !programa.treinoIds.includes(treinoId)) return null;
+  const semana = semanaDoPrograma(programa, sessoes, data);
+  return semana <= SEMANAS_REENTRADA ? semana : null;
+}
+
 /**
- * Plano do treino para o dia: igual ao cadastrado, exceto na adaptação para
- * sedentários (1 série na semana 1, 2 na semana 2, o normal a partir da 3ª).
+ * Plano do treino para o dia: igual ao cadastrado, exceto
+ * - na adaptação para sedentários (1 série na semana 1, 2 na semana 2, o
+ *   normal a partir da 3ª), em todas as linhas;
+ * - na reentrada (volta de pausa): 1 série nas linhas de TRABALHO nas semanas
+ *   1 e 2; aquecimento e ajuste ficam como estão.
  */
 export function planoDoDia(treino: Treino, programa: Programa | null, sessoes: Record<string, Sessao>, data: string): Treino {
+  if (semanaDeReentrada(programa, treino.id, sessoes, data) != null) {
+    return {
+      ...treino,
+      exercicios: treino.exercicios.map((te) => ({
+        ...te,
+        series: te.series.map((s) => {
+          if (s.tipo !== "trabalho") return s;
+          const m = s.presc.match(/^\s*\d+(?:\s*-\s*\d+)?\s*×(.*)$/);
+          return m ? { ...s, presc: `1 ×${m[1]}` } : s;
+        }),
+      })),
+    };
+  }
   if (!programa?.sedentario || !programa.treinoIds.includes(treino.id)) return treino;
   const semana = semanaDoPrograma(programa, sessoes, data);
   if (semana >= 3) return treino;

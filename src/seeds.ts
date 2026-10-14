@@ -124,5 +124,5 @@ export function gerarSeeds(): { treinos: Treino[]; exercicios: Exercicio[] } {
 export const GRUPOS_MUSCULARES = [
   "Peito", "Costas", "Ombro", "Bíceps", "Tríceps", "Punho / Antebraço",
   "Quadríceps", "Posterior", "Glúteos", "Panturrilha", "Abdômen",
-  "Lombar", "Trapézio", "Cardio", "Outro",
+  "Lombar", "Trapézio", "Pescoço", "Cardio", "Outro",
 ];

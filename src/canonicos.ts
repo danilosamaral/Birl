@@ -28,6 +28,12 @@ const C = (nomeOriginal: string, nome: string, apelidos: string[] = []): Canonic
   apelidos: [nomeOriginal, ...apelidos],
 });
 
+/**
+ * Movimento que já existia na biblioteca curada (id `sd_lib_…`, que nunca
+ * muda): o programa usa esse exercício em vez de criar um repetido.
+ */
+const L = (id: string, nome: string, apelidos: string[] = []): Canonico => ({ id, nome, apelidos });
+
 export const CANONICOS: Canonico[] = [
   // peito
   C("Supino inclinado com halteres ou máquina", "Supino inclinado com halteres ou máquina", ["Supino inclinado"]),
@@ -82,6 +88,9 @@ export const CANONICOS: Canonico[] = [
     "Panturrilha em pé na máquina ou no smith com step",
   ]),
   C("Panturrilha sentada", "Panturrilha sentada"),
+  L("sd_lib_Split_Squat_with_Dumbbells", "Afundo búlgaro com halteres", ["Agachamento búlgaro", "Afundo búlgaro"]),
+  // trapézio
+  L("sd_lib_Dumbbell_Shrug", "Encolhimento com halteres"),
   // abdômen
   C("Abdominal supra na prancha declinada", "Abdominal supra na prancha declinada"),
   C("Abdominal infra na torre", "Abdominal infra na torre"),

@@ -71,7 +71,7 @@ interface Estado {
   arquivarPrograma(id: string, arquivado: boolean): void;
   excluirPrograma(id: string): void;
   /** Instancia um programa do catálogo; retorna o id criado (ou null). */
-  adicionarProgramaDoCatalogo(templateId: string, opcoes?: { sedentario?: boolean; ativar?: boolean }): string | null;
+  adicionarProgramaDoCatalogo(templateId: string, opcoes?: { sedentario?: boolean; reentrada?: boolean; ativar?: boolean }): string | null;
   /** Junta exercícios de mesmo movimento (ver src/unificacao.ts); grava só o que mudou. */
   unificar(): Promise<void>;
 
@@ -547,6 +547,7 @@ export const useStore = create<Estado>((set, get) => {
         catalogoId: tpl.id,
         ...(tpl.lembrete ? { lembrete: tpl.lembrete } : {}),
         ...(opcoes.sedentario ? { sedentario: true } : {}),
+        ...(opcoes.reentrada ? { reentrada: true } : {}),
         treinoIds: idsPorIndice,
         divisaoSemana,
         updated_at: agora(),

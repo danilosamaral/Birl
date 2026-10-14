@@ -2,7 +2,7 @@ import { useState } from "react";
 import { useStore } from "../store";
 import { EditorTreino } from "./EditorTreino";
 import { EditorPrograma } from "./EditorPrograma";
-import { NIVEIS, templateDoPrograma, type CatalogoPrograma, type Nivel } from "../catalogo";
+import { NIVEIS, TRILHAS_EXTRAS, templateDoPrograma, type CatalogoPrograma, type Nivel } from "../catalogo";
 import { trilhaOrdenada, treinosFeitos } from "../trilha";
 import { Folha, confirmar } from "../folha";
 import { Icone } from "../icones";
@@ -258,6 +258,20 @@ function TrilhaFolha({ aoFechar, aoAdicionar }: { aoFechar(): void; aoAdicionar(
   };
   const trilha = trilhaOrdenada();
   const niveis = [1, 2, 3] as Nivel[];
+  const cartao = (tpl: CatalogoPrograma) => (
+    <button key={tpl.id} className={`pg${porTpl.get(tpl.id)?.some((p) => p.id === ativo?.id) ? " ativo" : ""}`} type="button" onClick={() => setDetalhe(tpl)}>
+      <span className="info">
+        <span className="nome" style={{ display: "block" }}>
+          {tpl.nome}
+        </span>
+        <span className="meta" style={{ display: "block" }}>
+          {resumoDias(tpl.divisaoSemana)}
+          {tpl.semanas ? ` · ≈${tpl.semanas} semanas` : ""}
+        </span>
+      </span>
+      {selo(tpl)}
+    </button>
+  );
 
   if (detalhe) return <DetalhePrograma tpl={detalhe} jaTem={porTpl.has(detalhe.id)} aoVoltar={() => setDetalhe(null)} aoFechar={aoFechar} aoAdicionar={aoAdicionar} />;
 
@@ -270,24 +284,34 @@ function TrilhaFolha({ aoFechar, aoAdicionar }: { aoFechar(): void; aoAdicionar(
             <span className="n">{n}</span>
             <span className="rotulo">{NIVEIS[n]}</span>
           </div>
-          <div className="trilha">
-            {trilha
-              .filter((t) => t.nivel === n)
-              .map((tpl) => (
-                <button key={tpl.id} className={`pg${porTpl.get(tpl.id)?.some((p) => p.id === ativo?.id) ? " ativo" : ""}`} type="button" onClick={() => setDetalhe(tpl)}>
-                  <span className="info">
-                    <span className="nome" style={{ display: "block" }}>
-                      {tpl.nome}
-                    </span>
-                    <span className="meta" style={{ display: "block" }}>
-                      {resumoDias(tpl.divisaoSemana)}
-                      {tpl.semanas ? ` · ≈${tpl.semanas} semanas` : ""}
-                    </span>
-                  </span>
-                  {selo(tpl)}
-                </button>
-              ))}
+          <div className="trilha">{trilha.filter((t) => t.nivel === n).map(cartao)}</div>
+        </div>
+      ))}
+      {TRILHAS_EXTRAS.map((x) => (
+        <div key={x.id} className="trilha-extra">
+          <div className="nivel">
+            <span className="n">
+              <Icone nome="bola" pequeno />
+            </span>
+            <span className="rotulo">{x.nome}</span>
           </div>
+          <div className="trilha">
+            {trilhaOrdenada(x.id).map(cartao)}
+            {x.fasesFuturas.map((f) => (
+              <div key={f.nome} className="pg depois" aria-disabled="true">
+                <span className="info">
+                  <span className="nome" style={{ display: "block" }}>
+                    {f.nome}
+                  </span>
+                  <span className="meta" style={{ display: "block" }}>
+                    {f.meta}
+                  </span>
+                </span>
+                <span className="selo breve">Em breve</span>
+              </div>
+            ))}
+          </div>
+          <p style={{ marginTop: 8, fontSize: 13 }}>{x.fonte}</p>
         </div>
       ))}
     </Folha>
@@ -309,9 +333,10 @@ function DetalhePrograma({
 }) {
   const st = useStore();
   const [sedentario, setSedentario] = useState(false);
+  const [reentrada, setReentrada] = useState(!!tpl.opcaoReentrada);
   const letras = tpl.treinos.map((t) => (tpl.treinos.length === 1 ? "•" : t.nome.replace(/^Treino /i, "")));
   const adicionar = (ativar: boolean) => {
-    const id = st.adicionarProgramaDoCatalogo(tpl.id, { sedentario, ativar });
+    const id = st.adicionarProgramaDoCatalogo(tpl.id, { sedentario, reentrada, ativar });
     if (id) aoAdicionar();
   };
   return (
@@ -355,6 +380,12 @@ function DetalhePrograma({
         <label className="check-linha" style={{ marginTop: 12 }}>
           <input type="checkbox" checked={sedentario} onChange={(e) => setSedentario(e.target.checked)} />
           <span>Estou parado há muito tempo: 1 série na semana 1, 2 na semana 2, 3 depois</span>
+        </label>
+      )}
+      {tpl.opcaoReentrada && (
+        <label className="check-linha" style={{ marginTop: 12 }}>
+          <input type="checkbox" checked={reentrada} onChange={(e) => setReentrada(e.target.checked)} />
+          <span>Estou voltando de pausa: semanas 1 e 2 com 1 série de trabalho, longe da falha. O plano normal volta na semana 3.</span>
         </label>
       )}
       {jaTem && <p style={{ marginTop: 12 }}>Você já tem este programa. Adicionar de novo cria uma cópia separada.</p>}

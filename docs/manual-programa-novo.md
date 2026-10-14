@@ -118,7 +118,10 @@ Outra técnica (cluster, tempo 3-1-1, negativa…) pode ser escrita como nota li
 `+ `, mas avise em "Pontos fora do modelo" para eu criar a etiqueta e o glossário.
 
 ### 4.4 Técnica do exercício inteiro (`tecnicas`)
-Hoje só existe **`pico2s`** = segurar 2 segundos no pico da contração em todas as repetições.
+Existem duas:
+- **`pico2s`** = segurar 2 segundos no pico da contração em todas as repetições.
+- **`explosivo`** = exercício de potência (salto, balanço com kettlebell): cada repetição o mais
+  rápido possível. O app **não sugere carga** nele, porque a meta é velocidade, não a faixa de reps.
 **Nunca coloque a técnica no nome do exercício** (errado: "Remada baixa com 2s de pico").
 
 ### 4.5 Divisão da semana
@@ -175,12 +178,24 @@ realmente não está aqui (e marque como **NOVO** na entrega).
 | Glúteos | Abdutor |
 | Panturrilha | Panturrilha em pé (máquina ou smith) |
 | Panturrilha | Panturrilha sentada |
+| Quadríceps | Afundo búlgaro com halteres |
+| Quadríceps | Salto no caixote |
+| Glúteos | Balanço com kettlebell |
+| Glúteos | Subida no banco com halteres |
+| Trapézio | Encolhimento com halteres |
+| Ombro | Crucifixo inverso curvado |
+| Ombro | Rotação externa de ombro com elástico |
+| Pescoço | Extensão de pescoço de quatro apoios |
 | Abdômen | Abdominal supra na prancha declinada |
 | Abdômen | Abdominal infra na torre |
 | Abdômen | Abdominal supra no solo |
 
-**Grupos musculares válidos:** Peito, Costas, Ombro, Bíceps, Tríceps, Quadríceps, Posterior,
-Glúteos, Panturrilha, Abdômen, Lombar. (Grupo novo → avise.)
+**Grupos musculares válidos:** Peito, Costas, Ombro, Bíceps, Tríceps, Punho / Antebraço,
+Quadríceps, Posterior, Glúteos, Panturrilha, Abdômen, Lombar, Trapézio, Pescoço. (Grupo novo → avise.)
+
+**A aba Exercícios do app também tem uma biblioteca** (ex.: "Face pull", "Remada cavalinho
+(T-bar)", "Agachamento goblet"). Se o seu exercício é um deles, use o nome igual: o app reaproveita
+esse exercício em vez de criar um repetido. Na dúvida, marque NOVO e eu confiro.
 
 **Exercício NOVO:** informe nome claro em português, grupo, equipamento e uma descrição de 1–2
 frases da execução. Não mande links de vídeo de área de membros ou conteúdo pago (o app só usa
@@ -195,7 +210,10 @@ busca pública no YouTube).
 - Escreva para quem está cansado entre séries: frases curtas, sem jargão sem explicação.
 - Sem emoji.
 - Diga em qual **nível** (1, 2 ou 3) o programa se encaixa e se ele deve entrar na **trilha** (a
-  sequência de etapas) ou ficar como programa avulso.
+  sequência de etapas) ou ficar como programa avulso. Programas que não são do curso podem ter a
+  **própria trilha** (como a do Rugby: Fase 1 → Fase 2 → Fase 3), que nunca se mistura à do curso.
+- Programa para quem volta de pausa: diga se quer a opção **"Estou voltando de pausa"** (semanas 1 e
+  2 com 1 série de trabalho, automática), em vez de escrever isso no lembrete.
 
 ## 7. FORMATO DA ENTREGA (copie esta estrutura)
 

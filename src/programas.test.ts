@@ -3,7 +3,7 @@ import { parseIntervalo } from "./analise";
 import { CANONICOS, canonicoPorNome, mapaDeApelidos } from "./canonicos";
 import { CATALOGO, idDoItemCatalogo } from "./catalogo";
 import { gerarSeeds, seedExercicioId, slug } from "./seeds";
-import { rotuloDaNota } from "./types";
+import { rotuloDaNota, TECNICAS } from "./types";
 import type { Exercicio, Sessao, Treino } from "./types";
 import { unificarExercicios } from "./unificacao";
 import { seriesDaLinha } from "./utils";
@@ -63,9 +63,19 @@ describe("nomes unificados", () => {
 });
 
 describe("catálogo", () => {
-  const NOVOS = new Set(["Rosca direta sentado com halteres", "Serrote"]);
+  // exercícios que não existiam antes do programa que os trouxe
+  const NOVOS = new Set([
+    "Rosca direta sentado com halteres",
+    "Serrote",
+    "Salto no caixote",
+    "Balanço com kettlebell",
+    "Subida no banco com halteres",
+    "Crucifixo inverso curvado",
+    "Rotação externa de ombro com elástico",
+    "Extensão de pescoço de quatro apoios",
+  ]);
 
-  it("tem os 7 programas da trilha, em ordem dentro de cada nível", () => {
+  it("tem os 7 programas da trilha do curso e o Rugby, em ordem dentro de cada nível", () => {
     expect(CATALOGO.map((t) => t.id)).toEqual([
       "cat_adaptacao",
       "cat_2x_iniciantes",
@@ -74,6 +84,7 @@ describe("catálogo", () => {
       "cat_abcd",
       "cat_abcde_superiores",
       "cat_5x",
+      "cat_rugby_f1_base",
     ]);
   });
 
@@ -86,6 +97,9 @@ describe("catálogo", () => {
         expect(ct.exercicios.length).toBeGreaterThan(0);
         for (const ce of ct.exercicios) {
           if (!NOVOS.has(ce.nome)) expect(canonicoPorNome(ce.nome), ce.nome).toBeDefined();
+          // exercício novo de plano próprio chega com equipamento e instruções
+          if (NOVOS.has(ce.nome) && tpl.trilha) expect(ce.equipamento && ce.instrucoes?.length, ce.nome).toBeTruthy();
+          for (const k of ce.tecnicas ?? []) expect(TECNICAS[k], k).toBeDefined();
           expect(idDoItemCatalogo(ce)).toMatch(/^sd_/);
           expect(ce.nome).not.toMatch(/pico/i);
           for (const s of ce.series) {
