@@ -277,7 +277,7 @@ export const BIBLIOTECA: DefBib[] = [
     "Desça até o joelho de trás quase tocar o chão.",
     "Empurre de volta e alterne as pernas.",
   ]),
-  B("Agachamento búlgaro", "Quadríceps", "Halteres", "Split_Squat_with_Dumbbells", [
+  B("Afundo búlgaro com halteres", "Quadríceps", "Halteres", "Split_Squat_with_Dumbbells", [
     "Pé de trás apoiado no banco, halteres nas mãos.",
     "Desça verticalmente flexionando a perna da frente.",
     "Suba sem impulsionar com a perna de trás.",
@@ -546,4 +546,11 @@ export function gerarEnriquecimentoSeeds(): Record<string, Enriquecimento> {
     };
   }
   return out;
+}
+
+/** Id do exercício da biblioteca curada com esse nome (sem acento/caixa), se houver. */
+export function idDaBiblioteca(nome: string): string | undefined {
+  const s = slug(nome);
+  const d = BIBLIOTECA.find((b) => slug(b.nome) === s);
+  return d ? bibId(d) : undefined;
 }

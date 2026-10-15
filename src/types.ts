@@ -114,6 +114,8 @@ export interface Programa {
   lembrete?: string;
   /** adaptação para sedentários: 1 série na semana 1, 2 na semana 2, normal depois */
   sedentario?: boolean;
+  /** volta de pausa: 1 série de trabalho por exercício nas semanas 1 e 2, normal depois */
+  reentrada?: boolean;
   arquivado?: boolean;
   updated_at: string;
   deleted?: boolean;
@@ -207,6 +209,8 @@ export function seriesExtraPadrao(): SeriePlano[] {
 /** Técnicas que valem para o exercício todo (etiquetas). */
 export const TECNICAS: Record<string, { rotulo: string; glos: string }> = {
   pico2s: { rotulo: "Pico 2s", glos: "pico" },
+  /** potência: a meta é velocidade, então o app não sugere carga */
+  explosivo: { rotulo: "Explosivo", glos: "explosivo" },
 };
 
 /** Etiqueta curta para a nota de técnica de uma série ("+ 1 drop set" → "Drop set"). */

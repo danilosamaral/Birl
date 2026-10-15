@@ -28,6 +28,8 @@ import {
   posicoesDoDia,
   programasVisiveis,
   semanaDoPrograma,
+  semanaDeReentrada,
+  SEMANAS_REENTRADA,
   seriesDaLinha,
   sessoesDoTreino,
   todasAsSessoes,
@@ -142,6 +144,7 @@ export function Hoje() {
   const preparo = ["Aquecimento geral 5–10 min (esteira, bike, escada)", ...(treino.preparo ?? []).filter((l) => l.trim())];
   const feitosPreparo = new Set(sess.preparo ?? []);
   const semanaSed = programa?.sedentario && programa.treinoIds.includes(treino.id) ? semanaDoPrograma(programa, st.sessoes, st.dataAtiva) : null;
+  const semanaReentrada = semanaDeReentrada(programa, treino.id, st.sessoes, st.dataAtiva);
   const etapa = programa ? proximaEtapa(programa, st.programas, st.sessoes, st.dataAtiva) : null;
   const ehHoje = st.dataAtiva === dataHoje();
 
@@ -190,6 +193,14 @@ export function Hoje() {
             {semanaSed >= 3 ? "agora são as 3 séries normais." : `${semanaSed} série${semanaSed > 1 ? "s" : ""} por exercício.`}
           </div>
         )}
+        {semanaReentrada != null && (
+          <div className="lembrete">
+            <b>
+              Reentrada · semana {semanaReentrada} de {SEMANAS_REENTRADA}.
+            </b>{" "}
+            1 série de trabalho por exercício, longe da falha.
+          </div>
+        )}
         {programa?.lembrete && <div className="lembrete">{programa.lembrete}</div>}
 
         <span className="rotulo" style={{ marginTop: 6 }}>
@@ -216,7 +227,8 @@ export function Hoje() {
           <div className="banner-dica" style={{ margin: "4px 0 0" }}>
             <Icone nome="trilha" pequeno />
             <span>
-              {etapa.texto} <b>Próxima etapa: {etapa.proxima.nome}.</b>{" "}
+              {etapa.texto}{" "}
+              <b>{etapa.proxima ? `Próxima etapa: ${etapa.proxima.nome}.` : `Hora da reavaliação; depois vem a ${etapa.reavaliar}.`}</b>{" "}
               <button className="link" type="button" style={{ padding: 0, minHeight: 0 }} onClick={() => st.setTab("treinos")}>
                 Ver na trilha
               </button>
@@ -537,7 +549,9 @@ function LinhaSerie({
   const feitos = feitosDaLinha(salvo, n);
   const feita = feitos.length > 0 && feitos.every(Boolean);
   const ehRM = /×\s*RM/i.test(s.presc);
-  const sugestao = s.tipo === "trabalho" && !ehRM ? sugerirCarga(s.presc, ultimo, nomeExercicio) : null;
+  // exercício de potência: a meta é velocidade, não a faixa de reps
+  const explosivo = !!te.tecnicas?.includes("explosivo");
+  const sugestao = s.tipo === "trabalho" && !ehRM && !explosivo ? sugerirCarga(s.presc, ultimo, nomeExercicio) : null;
 
   const mudar = (campo: "sets" | "kg" | "reps" | "rir", valor: string) => {
     if (preCarga) st.setRegistroCompleto(chave, { ...preCarga, done: false, feitos: [], [campo]: valor });
@@ -635,6 +649,11 @@ function LinhaSerie({
         </div>
       )}
 
+      {explosivo && s.tipo === "trabalho" && (
+        <p style={{ margin: 0, fontSize: 13, lineHeight: "18px", color: "var(--ink-3)", fontWeight: 600 }}>
+          Sem sugestão de carga: a meta é velocidade.
+        </p>
+      )}
       {sugestao && (
         <div className="banner-dica" style={{ margin: 0 }}>
           <Icone nome={sugestao.direcao === "subir" ? "subir" : sugestao.direcao === "baixar" ? "descer" : "igual"} pequeno />
